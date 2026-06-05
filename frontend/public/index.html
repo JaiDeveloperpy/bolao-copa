@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bolão Copa 2026 🏆</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+
+<!-- ============================
+     TELA DE LOGIN / REGISTRO
+============================= -->
+<div id="auth-screen" class="screen active">
+  <div class="auth-bg">
+    <div class="auth-orb orb1"></div>
+    <div class="auth-orb orb2"></div>
+    <div class="auth-orb orb3"></div>
+  </div>
+  <div class="auth-container">
+    <div class="auth-brand">
+      <span class="brand-icon">⚽</span>
+      <h1>Bolão Copa 2026</h1>
+      <p>Faça seus palpites e dispute o título</p>
+    </div>
+    <div class="auth-card">
+      <div class="auth-tabs">
+        <button class="auth-tab active" data-tab="login">Entrar</button>
+        <button class="auth-tab" data-tab="register">Cadastrar</button>
+      </div>
+
+      <!-- Login -->
+      <form id="login-form" class="auth-form active">
+        <div class="field">
+          <label>E-mail</label>
+          <input type="email" id="login-email" placeholder="seu@email.com" required />
+        </div>
+        <div class="field">
+          <label>Senha</label>
+          <input type="password" id="login-password" placeholder="••••••" required />
+        </div>
+        <button type="submit" class="btn-primary btn-full">Entrar</button>
+        <p id="login-error" class="form-error"></p>
+      </form>
+
+      <!-- Registro -->
+      <form id="register-form" class="auth-form">
+        <div class="field">
+          <label>Nome</label>
+          <input type="text" id="reg-name" placeholder="Seu nome" required />
+        </div>
+        <div class="field">
+          <label>E-mail</label>
+          <input type="email" id="reg-email" placeholder="seu@email.com" required />
+        </div>
+        <div class="field">
+          <label>Senha</label>
+          <input type="password" id="reg-password" placeholder="Mínimo 6 caracteres" required />
+        </div>
+        <button type="submit" class="btn-primary btn-full">Criar conta</button>
+        <p id="register-error" class="form-error"></p>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ============================
+     APP PRINCIPAL
+============================= -->
+<div id="app-screen" class="screen">
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-inner">
+      <div class="header-brand">
+        <span>⚽</span>
+        <span class="header-title">Bolão Copa 2026</span>
+      </div>
+      <nav class="header-nav">
+        <button class="nav-btn active" data-page="jogos">Jogos</button>
+        <button class="nav-btn" data-page="meus-palpites">Meus Palpites</button>
+        <button class="nav-btn" data-page="ranking">Ranking</button>
+        <button class="nav-btn admin-btn hidden" data-page="admin">⚙️ Admin</button>
+      </nav>
+      <div class="header-user">
+        <span id="header-username"></span>
+        <button class="btn-logout" id="logout-btn">Sair</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- MOBILE NAV -->
+  <nav class="mobile-nav">
+    <button class="mnav-btn active" data-page="jogos">⚽<span>Jogos</span></button>
+    <button class="mnav-btn" data-page="meus-palpites">🎯<span>Palpites</span></button>
+    <button class="mnav-btn" data-page="ranking">🏆<span>Ranking</span></button>
+    <button class="mnav-btn admin-btn hidden" data-page="admin">⚙️<span>Admin</span></button>
+  </nav>
+
+  <!-- PÁGINAS -->
+  <main class="main">
+
+    <!-- JOGOS -->
+    <div id="page-jogos" class="page active">
+      <div class="page-header">
+        <h2>Próximos Jogos</h2>
+        <p>Clique em um jogo para fazer seu palpite</p>
+      </div>
+      <div class="filter-bar">
+        <button class="filter-btn active" data-filter="all">Todos</button>
+        <button class="filter-btn" data-filter="open">Apostas abertas</button>
+        <button class="filter-btn" data-filter="finished">Finalizados</button>
+      </div>
+      <div id="matches-list" class="matches-grid"></div>
+    </div>
+
+    <!-- MEUS PALPITES -->
+    <div id="page-meus-palpites" class="page">
+      <div class="page-header">
+        <h2>Meus Palpites</h2>
+        <div id="my-stats" class="stats-bar"></div>
+      </div>
+      <div id="my-bets-list" class="matches-grid"></div>
+    </div>
+
+    <!-- RANKING -->
+    <div id="page-ranking" class="page">
+      <div class="page-header">
+        <h2>🏆 Ranking Geral</h2>
+        <p>Pontuação ao vivo</p>
+      </div>
+      <div id="ranking-list" class="ranking-container"></div>
+    </div>
+
+    <!-- ADMIN -->
+    <div id="page-admin" class="page">
+      <div class="page-header">
+        <h2>⚙️ Painel Admin</h2>
+        <p>Gerencie jogos e resultados</p>
+      </div>
+      <div class="admin-grid">
+
+        <!-- Adicionar jogo -->
+        <div class="admin-card">
+          <h3>Adicionar Jogo</h3>
+          <form id="add-match-form">
+            <div class="field-row">
+              <div class="field">
+                <label>Time da Casa</label>
+                <select id="am-home" required></select>
+              </div>
+              <div class="field">
+                <label>Time Visitante</label>
+                <select id="am-away" required></select>
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label>Fase</label>
+                <select id="am-phase">
+                  <option value="group">Fase de Grupos</option>
+                  <option value="round_of_32">Oitavas (32)</option>
+                  <option value="round_of_16">Oitavas de Final</option>
+                  <option value="quarter_final">Quartas de Final</option>
+                  <option value="semi_final">Semifinal</option>
+                  <option value="third_place">3º Lugar</option>
+                  <option value="final">Final</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Grupo</label>
+                <select id="am-group">
+                  <option value="">Nenhum</option>
+                </select>
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label>Data e Hora</label>
+                <input type="datetime-local" id="am-date" required />
+              </div>
+              <div class="field">
+                <label>Estádio</label>
+                <input type="text" id="am-stadium" placeholder="MetLife Stadium" />
+              </div>
+            </div>
+            <div class="field">
+              <label>Cidade</label>
+              <input type="text" id="am-city" placeholder="Nova York" />
+            </div>
+            <button type="submit" class="btn-primary">Adicionar Jogo</button>
+            <p id="add-match-msg" class="form-msg"></p>
+          </form>
+        </div>
+
+        <!-- Registrar resultado -->
+        <div class="admin-card">
+          <h3>Registrar Resultado</h3>
+          <form id="result-form">
+            <div class="field">
+              <label>Selecionar Jogo</label>
+              <select id="result-match"></select>
+            </div>
+            <div class="field-row score-inputs">
+              <div class="field">
+                <label id="result-home-label">Casa</label>
+                <input type="number" id="result-home" min="0" value="0" />
+              </div>
+              <span class="score-x">×</span>
+              <div class="field">
+                <label id="result-away-label">Visitante</label>
+                <input type="number" id="result-away" min="0" value="0" />
+              </div>
+            </div>
+            <button type="submit" class="btn-success">Registrar & Pontuar</button>
+            <p id="result-msg" class="form-msg"></p>
+          </form>
+        </div>
+
+      </div>
+
+      <!-- Lista de jogos admin -->
+      <div class="admin-card mt">
+        <h3>Jogos Cadastrados</h3>
+        <div id="admin-matches-list" class="admin-matches"></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- MODAL PALPITE -->
+<div id="bet-modal" class="modal-overlay hidden">
+  <div class="modal">
+    <button class="modal-close" id="modal-close">✕</button>
+    <div class="modal-header">
+      <div class="modal-phase" id="modal-phase"></div>
+      <div class="modal-date" id="modal-date"></div>
+    </div>
+    <div class="modal-teams">
+      <div class="modal-team">
+        <span class="team-flag" id="modal-home-flag"></span>
+        <span class="team-name" id="modal-home-name"></span>
+      </div>
+      <div class="modal-score-inputs">
+        <input type="number" id="bet-home" min="0" max="30" value="0" class="score-input" />
+        <span class="score-dash">–</span>
+        <input type="number" id="bet-away" min="0" max="30" value="0" class="score-input" />
+      </div>
+      <div class="modal-team">
+        <span class="team-flag" id="modal-away-flag"></span>
+        <span class="team-name" id="modal-away-name"></span>
+      </div>
+    </div>
+    <div class="modal-points-guide">
+      <span class="pts-badge pts-10">10pts placar exato</span>
+      <span class="pts-badge pts-7">7pts vencedor+saldo</span>
+      <span class="pts-badge pts-5">5pts só vencedor</span>
+    </div>
+    <button class="btn-primary btn-full" id="save-bet-btn">Salvar Palpite ⚽</button>
+    <p id="bet-msg" class="form-msg"></p>
+  </div>
+</div>
+
+<script src="/js/app.js"></script>
+</body>
+</html>
