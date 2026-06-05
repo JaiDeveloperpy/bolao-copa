@@ -10,8 +10,10 @@ const PORT = process.env.PORT || 3001;
 // Middlewares globais
 // =============================================
 app.use(cors({
-  origin: process.env.FRONTEND_URL || '*',
-  credentials: true,
+  origin: [
+    "https://bolao-copa-seven-omega.vercel.app"
+  ],
+  credentials: true
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

@@ -2,7 +2,10 @@
    BOLÃO COPA 2026 — Frontend JS
 ============================================= */
 
-const API = '/api';
+const API =
+  window.location.hostname === 'localhost'
+    ? 'http://localhost:3001/api'
+    : 'https://bolao-copa-production-b75c.up.railway.app/api';
 let currentUser = null;
 let currentMatch = null;
 let allMatches   = [];
