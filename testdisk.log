@@ -1,0 +1,35 @@
+
+
+Sat Jun  6 01:50:27 2026
+Command line: TestDisk
+
+TestDisk 7.2, Data Recovery Utility, February 2024
+Christophe GRENIER <grenier@cgsecurity.org>
+https://www.cgsecurity.org
+OS: Linux, kernel 7.0.10-2-cachyos (#1 SMP PREEMPT_DYNAMIC Thu, 28 May 2026 21:12:58 +0000) x86_64
+Compiler: GCC 16.1
+ext2fs lib: 1.47.4, ntfs lib: libntfs-3g, reiserfs lib: none, ewf lib: none, curses lib: ncurses 6.6
+Warning: can't get size for Disk /dev/mapper/control - 0 B - 0 sectors, sector size=512
+Hard disk list
+Disk /dev/nvme0n1 - 256 GB / 238 GiB - CHS 244198 64 32, sector size=512 - HFS256GEJ9X110N, S/N:HED6P0001912A6L01
+
+Partition table type (auto): EFI GPT
+Disk /dev/nvme0n1 - 256 GB / 238 GiB - HFS256GEJ9X110N
+Partition table type: EFI GPT
+
+Interface Advanced
+hdr_size=92
+hdr_lba_self=1
+hdr_lba_alt=500118191 (expected 500118191)
+hdr_lba_start=2048
+hdr_lba_end=500118158
+hdr_lba_table=2
+hdr_entries=128
+hdr_entsz=128
+ 1 P EFI System                  4096    1052671    1048576
+ 2 P Linux filesys. data      1052672  500118119  499065448 [root]
+
+ 2 P Linux filesys. data      1052672  500118119  499065448 [root]
+Support for this filesystem wasn't enabled during compilation.
+SIGHUP detected! PhotoRec has been killed.
+SIGHUP detected! PhotoRec has been killed.

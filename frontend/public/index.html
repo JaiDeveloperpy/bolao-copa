@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Bolão Copa 2026 🏆</title>
+  <title>JaiBet 🏆</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/css/style.css" />
@@ -21,8 +21,12 @@
   </div>
   <div class="auth-container">
     <div class="auth-brand">
-      <span class="brand-icon">⚽</span>
-      <h1>Bolão Copa 2026</h1>
+      <h1 style="display:flex;align-items:center;justify-content:center;gap:0.5rem;flex-wrap:wrap">
+        <img src="/img/img1.jpg" style="width:48px;height:48px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,0.2)" alt="" onerror="this.style.display='none'">
+        <s style="color:#6a7f6a;font-size:0.8em;text-decoration:line-through">BruxoBet</s>
+        <img src="/img/img2.jpg" style="width:48px;height:48px;border-radius:50%;object-fit:cover;border:2px solid rgba(57,255,137,0.4)" alt="" onerror="this.style.display='none'">
+        JaiBet
+      </h1>
       <p>Faça seus palpites e dispute o título</p>
     </div>
     <div class="auth-card">
@@ -75,13 +79,19 @@
   <header class="header">
     <div class="header-inner">
       <div class="header-brand">
-        <span>⚽</span>
-        <span class="header-title">Bolão Copa 2026</span>
+        
+        <span class="header-title" style="display:flex;align-items:center;gap:0.4rem;font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:1px">
+          <img src="/img/img1.jpg" style="width:28px;height:28px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,0.2)" alt="" onerror="this.style.display='none'">
+          <s style="color:#6a7f6a;font-size:0.85em;text-decoration:line-through">BruxoBet</s>
+          <img src="/img/img2.jpg" style="width:28px;height:28px;border-radius:50%;object-fit:cover;border:2px solid rgba(57,255,137,0.4)" alt="" onerror="this.style.display='none'">
+          <span style="color:var(--gold)">JaiBet</span>
+        </span>
       </div>
       <nav class="header-nav">
         <button class="nav-btn active" data-page="jogos">Jogos</button>
         <button class="nav-btn" data-page="meus-palpites">Meus Palpites</button>
         <button class="nav-btn" data-page="ranking">Ranking</button>
+        <a href="/grupos.html" class="nav-btn">🗂️ Grupos</a>
         <button class="nav-btn admin-btn hidden" data-page="admin">⚙️ Admin</button>
       </nav>
       <div class="header-user">
@@ -95,6 +105,7 @@
   <nav class="mobile-nav">
     <button class="mnav-btn active" data-page="jogos">⚽<span>Jogos</span></button>
     <button class="mnav-btn" data-page="meus-palpites">🎯<span>Palpites</span></button>
+    <a href="/grupos.html" class="mnav-btn">🗂️<span>Grupos</span></a>
     <button class="mnav-btn" data-page="ranking">🏆<span>Ranking</span></button>
     <button class="mnav-btn admin-btn hidden" data-page="admin">⚙️<span>Admin</span></button>
   </nav>

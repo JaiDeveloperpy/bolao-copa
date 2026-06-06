@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>JaiBet – Grupos 🏆</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/style.css" />
+  <style>
+    .grupos-header {
+      display: flex; align-items: center; gap: 1rem;
+      margin-bottom: 2rem; flex-wrap: wrap;
+    }
+    .back-btn {
+      background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12);
+      color: var(--gray-light); padding: 0.5rem 1rem; border-radius: var(--radius-sm);
+      cursor: pointer; font-size: 0.9rem; text-decoration: none;
+      transition: var(--transition);
+    }
+    .back-btn:hover { color: var(--white); background: rgba(255,255,255,0.12); }
+
+    .grupos-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 1.25rem;
+    }
+
+    .grupo-card {
+      background: rgba(13,64,37,0.5);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+    }
+    .grupo-titulo {
+      background: linear-gradient(135deg, var(--green-main), var(--green-dark));
+      padding: 0.65rem 1.1rem;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .grupo-titulo h3 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.15rem; letter-spacing: 2px; color: var(--gold);
+    }
+    .grupo-titulo span { font-size: 0.72rem; color: var(--gray-light); }
+
+    .grupo-tabela { width: 100%; border-collapse: collapse; }
+    .grupo-tabela th {
+      font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.5px;
+      color: var(--gray-mid); padding: 0.4rem 0.75rem; text-align: center;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .grupo-tabela th.left { text-align: left; }
+    .grupo-tabela td {
+      padding: 0.55rem 0.75rem; text-align: center;
+      font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    .grupo-tabela td.left { text-align: left; }
+    .grupo-tabela tr:last-child td { border-bottom: none; }
+
+    .grupo-tabela tr.classificado td { background: rgba(57,255,137,0.05); }
+    .grupo-tabela tr.classificado td.team-cell .team-name { color: var(--green-neon); }
+    .grupo-tabela tr:nth-child(3) td,
+    .grupo-tabela tr:nth-child(4) td { opacity: 0.6; }
+
+    .team-cell { display: flex; align-items: center; gap: 0.5rem; }
+    .team-cell .tflag { font-size: 1.2rem; }
+    .team-cell .team-name { font-weight: 600; font-size: 0.82rem; }
+
+    .pts-col { font-weight: 700; color: var(--gold); }
+    .pos-badge {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 22px; height: 22px; border-radius: 50%;
+      font-size: 0.7rem; font-weight: 700;
+    }
+    .pos-1 { background: rgba(245,197,24,0.2); color: var(--gold); }
+    .pos-2 { background: rgba(57,255,137,0.15); color: var(--green-neon); }
+    .pos-3, .pos-4 { background: rgba(255,255,255,0.06); color: var(--gray-mid); }
+
+    .classificados-label {
+      font-size: 0.65rem; color: var(--green-neon); padding: 0.3rem 0.75rem;
+      background: rgba(57,255,137,0.05); border-top: 1px solid rgba(57,255,137,0.1);
+      display: flex; align-items: center; gap: 0.4rem;
+    }
+    .classificados-label::before { content: '✓'; font-weight: 700; }
+
+    .sem-palpites {
+      padding: 1rem; text-align: center;
+      font-size: 0.82rem; color: var(--gray-mid);
+    }
+
+    .legend {
+      display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap;
+    }
+    .legend-item { display: flex; align-items: center; gap: 0.4rem; font-size: 0.78rem; color: var(--gray-light); }
+    .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .dot-green { background: var(--green-neon); }
+    .dot-gray  { background: var(--gray-mid); }
+
+    .aviso {
+      background: rgba(245,197,24,0.08); border: 1px solid rgba(245,197,24,0.2);
+      border-radius: var(--radius-sm); padding: 0.75rem 1rem;
+      font-size: 0.82rem; color: var(--gold); margin-bottom: 1.5rem;
+    }
+
+    .loading-grupos {
+      display: flex; align-items: center; justify-content: center;
+      gap: 0.75rem; padding: 4rem; color: var(--gray-light);
+    }
+
+    @media (max-width: 768px) {
+      .grupos-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div id="grupos-screen" style="min-height:100vh; background: var(--green-dark);">
+
+  <header class="header">
+    <div class="header-inner">
+      <div class="header-brand">
+        <span>⚽</span>
+        <span class="header-title"><s style="color:#6a7f6a;font-size:0.75em;text-decoration:line-through">BruxoBet</s> JaiBet</span>
+      </div>
+      <div style="flex:1"></div>
+      <div class="header-user">
+        <span id="header-username"></span>
+        <a href="/" class="back-btn">← Voltar</a>
+      </div>
+    </div>
+  </header>
+
+  <main style="max-width:1200px; margin:0 auto; padding:2rem 1.5rem 4rem;">
+
+    <div class="grupos-header">
+      <div>
+        <h2 style="font-family:'Bebas Neue',sans-serif;font-size:2rem;letter-spacing:2px;color:var(--gold)">
+          🗂️ Meu Bolão de Grupos
+        </h2>
+        <p style="color:var(--gray-light);font-size:0.9rem;margin-top:0.25rem">
+          Classificação simulada com base nos seus palpites
+        </p>
+      </div>
+      <div style="margin-left:auto">
+        <select id="user-select" style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.15);color:var(--white);padding:0.5rem 1rem;border-radius:var(--radius-sm);font-size:0.9rem;cursor:pointer;">
+          <option value="me">Meus palpites</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="aviso" id="aviso-cobertura" style="display:none"></div>
+
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot dot-green"></div> Classificado (top 2)</div>
+      <div class="legend-item"><div class="legend-dot dot-gray"></div> Eliminado</div>
+    </div>
+
+    <div id="grupos-container">
+      <div class="loading-grupos"><div class="spinner"></div> Calculando grupos...</div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+const API = window.location.hostname === 'localhost'
+  ? 'http://localhost:3001/api'
+  : 'https://bolao-copa-production-b75c.up.railway.app/api';
+
+const token = () => localStorage.getItem('token');
+
+async function apiFetch(path) {
+  const res = await fetch(API + path, {
+    headers: { 'Authorization': `Bearer ${token()}`, 'Content-Type': 'application/json' }
+  });
+  if (!res.ok) throw new Error('Erro ' + res.status);
+  return res.json();
+}
+
+// Grupos oficiais
+const GRUPOS = {
+  A: { times: ['MEX','RSA','KOR','CZE'] },
+  B: { times: ['CAN','BIH','QAT','SUI'] },
+  C: { times: ['BRA','MAR','HAI','SCO'] },
+  D: { times: ['USA','PAR','AUS','TUR'] },
+  E: { times: ['GER','CUW','CIV','ECU'] },
+  F: { times: ['NED','JPN','SWE','TUN'] },
+  G: { times: ['BEL','EGY','IRN','NZL'] },
+  H: { times: ['ESP','CPV','KSA','URU'] },
+  I: { times: ['FRA','SEN','IRQ','NOR'] },
+  J: { times: ['ARG','ALG','AUT','JOR'] },
+  K: { times: ['POR','COD','UZB','COL'] },
+  L: { times: ['ENG','CRO','GHA','PAN'] },
+};
+
+function calcGrupo(grupo, bets, matchesMap, teamsMap) {
+  const codes = GRUPOS[grupo].times;
+
+  // Inicializa stats
+  const stats = {};
+  codes.forEach(code => {
+    stats[code] = { pts: 0, j: 0, v: 0, e: 0, d: 0, gp: 0, gc: 0, sg: 0 };
+  });
+
+  let jogosComPalpite = 0;
+  let totalJogos = 0;
+
+  // Pega jogos desse grupo
+  Object.values(matchesMap).forEach(m => {
+    if (m.group_name !== grupo) return;
+    const homeCode = m.home_team_code;
+    const awayCode = m.away_team_code;
+    if (!codes.includes(homeCode) || !codes.includes(awayCode)) return;
+
+    totalJogos++;
+    const bet = bets[m.id];
+    if (!bet) return;
+    jogosComPalpite++;
+
+    const hg = bet.home;
+    const ag = bet.away;
+
+    stats[homeCode].j++; stats[awayCode].j++;
+    stats[homeCode].gp += hg; stats[homeCode].gc += ag;
+    stats[awayCode].gp += ag; stats[awayCode].gc += hg;
+    stats[homeCode].sg += (hg - ag);
+    stats[awayCode].sg += (ag - hg);
+
+    if (hg > ag) {
+      stats[homeCode].pts += 3; stats[homeCode].v++;
+      stats[awayCode].d++;
+    } else if (hg === ag) {
+      stats[homeCode].pts += 1; stats[homeCode].e++;
+      stats[awayCode].pts += 1; stats[awayCode].e++;
+    } else {
+      stats[awayCode].pts += 3; stats[awayCode].v++;
+      stats[homeCode].d++;
+    }
+  });
+
+  // Ordena: pts → sg → gp → nome
+  const ordenados = codes.sort((a, b) => {
+    if (stats[b].pts !== stats[a].pts) return stats[b].pts - stats[a].pts;
+    if (stats[b].sg  !== stats[a].sg)  return stats[b].sg  - stats[a].sg;
+    if (stats[b].gp  !== stats[a].gp)  return stats[b].gp  - stats[a].gp;
+    return a.localeCompare(b);
+  });
+
+  return { ordenados, stats, jogosComPalpite, totalJogos };
+}
+
+function renderGrupo(grupo, ordenados, stats, teamsMap, jogosComPalpite, totalJogos) {
+  const cobertura = totalJogos > 0 ? Math.round((jogosComPalpite / totalJogos) * 100) : 0;
+
+  let linhas = ordenados.map((code, i) => {
+    const t = teamsMap[code] || { name: code, flag_emoji: '🏳️' };
+    const s = stats[code];
+    const pos = i + 1;
+    const isClass = pos <= 2;
+    return `
+    <tr class="${isClass ? 'classificado' : ''}">
+      <td><span class="pos-badge pos-${pos}">${pos}</span></td>
+      <td class="left">
+        <div class="team-cell">
+          <span class="tflag">${t.flag_emoji || '🏳️'}</span>
+          <span class="team-name">${t.name}</span>
+        </div>
+      </td>
+      <td>${s.j}</td>
+      <td>${s.v}</td>
+      <td>${s.e}</td>
+      <td>${s.d}</td>
+      <td>${s.gp}:${s.gc}</td>
+      <td class="pts-col">${s.pts}</td>
+    </tr>`;
+  }).join('');
+
+  const class1 = teamsMap[ordenados[0]];
+  const class2 = teamsMap[ordenados[1]];
+  const classLabel = jogosComPalpite > 0
+    ? `${class1?.flag_emoji || ''} ${class1?.name || ordenados[0]} e ${class2?.flag_emoji || ''} ${class2?.name || ordenados[1]}`
+    : '—';
+
+  return `
+  <div class="grupo-card">
+    <div class="grupo-titulo">
+      <h3>Grupo ${grupo}</h3>
+      <span>${jogosComPalpite}/${totalJogos} palpites</span>
+    </div>
+    ${jogosComPalpite === 0 ? `<div class="sem-palpites">Nenhum palpite neste grupo ainda</div>` : `
+    <table class="grupo-tabela">
+      <thead>
+        <tr>
+          <th></th>
+          <th class="left">Time</th>
+          <th title="Jogos">J</th>
+          <th title="Vitórias">V</th>
+          <th title="Empates">E</th>
+          <th title="Derrotas">D</th>
+          <th title="Gols">G</th>
+          <th title="Pontos">Pts</th>
+        </tr>
+      </thead>
+      <tbody>${linhas}</tbody>
+    </table>
+    <div class="classificados-label">Classificados: ${classLabel}</div>
+    `}
+  </div>`;
+}
+
+async function init() {
+  if (!token()) { window.location.href = '/'; return; }
+
+  try {
+    const me = await apiFetch('/auth/me');
+    document.getElementById('header-username').textContent = me.name;
+
+    // Carrega palpites e jogos
+    const [bets, matches, teams] = await Promise.all([
+      apiFetch('/bets/my'),
+      apiFetch('/matches'),
+      apiFetch('/teams')
+    ]);
+
+    // Mapeia times por código
+    const teamsMap = {};
+    teams.forEach(t => { teamsMap[t.code] = t; });
+
+    // Mapeia jogos por id
+    const matchesMap = {};
+    matches.forEach(m => { matchesMap[m.id] = m; });
+
+    // Mapeia palpites por match_id
+    const betsMap = {};
+    bets.forEach(b => {
+      betsMap[b.match_id] = { home: b.home_score_bet, away: b.away_score_bet };
+    });
+
+    // Calcula cobertura total
+    const grupoMatches = matches.filter(m => m.phase === 'group');
+    const totalBets = bets.filter(b => matchesMap[b.match_id]?.phase === 'group').length;
+    const pct = grupoMatches.length > 0 ? Math.round((totalBets / grupoMatches.length) * 100) : 0;
+
+    if (pct < 100) {
+      const aviso = document.getElementById('aviso-cobertura');
+      aviso.style.display = 'block';
+      aviso.textContent = `⚠️ Você apostou em ${totalBets} de ${grupoMatches.length} jogos da fase de grupos (${pct}%). Times sem palpite aparecem com 0 pontos.`;
+    }
+
+    // Renderiza todos os grupos
+    let html = '<div class="grupos-grid">';
+    Object.keys(GRUPOS).forEach(grupo => {
+      const { ordenados, stats, jogosComPalpite, totalJogos } = calcGrupo(grupo, betsMap, matchesMap, teamsMap);
+      html += renderGrupo(grupo, ordenados, stats, teamsMap, jogosComPalpite, totalJogos);
+    });
+    html += '</div>';
+
+    document.getElementById('grupos-container').innerHTML = html;
+
+  } catch (err) {
+    document.getElementById('grupos-container').innerHTML =
+      `<div class="empty-state"><div class="empty-icon">⚠️</div><p>${err.message}</p></div>`;
+  }
+}
+
+init();
+</script>
+</body>
+</html>
