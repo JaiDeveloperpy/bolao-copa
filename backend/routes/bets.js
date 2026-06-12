@@ -39,7 +39,6 @@ router.post('/', auth, async (req, res) => {
   }
 
   try {
-    // Verificar se o jogo existe e se apostas estão abertas
     const matchRes = await db.query(
       'SELECT id, betting_closed, is_finished, match_date FROM matches WHERE id = $1',
       [match_id]
@@ -57,7 +56,6 @@ router.post('/', auth, async (req, res) => {
       return res.status(403).json({ error: 'As apostas para este jogo estão encerradas.' });
     }
 
-    // Upsert do palpite
     const result = await db.query(
       `INSERT INTO bets (user_id, match_id, home_score_bet, away_score_bet)
        VALUES ($1, $2, $3, $4)
@@ -99,6 +97,91 @@ router.get('/match/:matchId', auth, async (req, res) => {
     res.json(result.rows);
   } catch (err) {
     res.status(500).json({ error: 'Erro ao buscar palpites.' });
+  }
+});
+
+// GET /api/bets/all-by-match — todos os palpites de todos, agrupados por jogo
+router.get('/all-by-match', auth, async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const result = await db.query(`
+      SELECT
+        m.id                    AS match_id,
+        m.home_team_id,
+        m.away_team_id,
+        ht.name                 AS home_team,
+        ht.flag_emoji           AS home_flag,
+        at.name                 AS away_team,
+        at.flag_emoji           AS away_flag,
+        m.match_date,
+        m.stadium,
+        m.city,
+        m.phase,
+        m.home_score            AS result_home,
+        m.away_score            AS result_away,
+        m.betting_closed,
+        m.is_finished,
+
+        b.id                    AS bet_id,
+        b.user_id,
+        u.name                  AS user_name,
+        u.avatar_url,
+        b.home_score_bet        AS bet_home,
+        b.away_score_bet        AS bet_away,
+        b.points_earned,
+        b.is_scored,
+
+        (b.user_id = $1)        AS is_mine
+
+      FROM matches m
+      JOIN teams ht ON ht.id = m.home_team_id
+      JOIN teams at ON at.id = m.away_team_id
+      LEFT JOIN bets b ON b.match_id = m.id
+      LEFT JOIN users u ON u.id = b.user_id
+      ORDER BY m.match_date ASC, m.id, u.name ASC
+    `, [userId]);
+
+    const matchesMap = {};
+
+    for (const row of result.rows) {
+      if (!matchesMap[row.match_id]) {
+        matchesMap[row.match_id] = {
+          id:            row.match_id,
+          home_team:     row.home_team,
+          home_flag:     row.home_flag,
+          away_team:     row.away_team,
+          away_flag:     row.away_flag,
+          match_date:    row.match_date,
+          stadium:       row.stadium,
+          city:          row.city,
+          phase:         row.phase,
+          result_home:   row.result_home,
+          result_away:   row.result_away,
+          betting_closed: row.betting_closed,
+          is_finished:   row.is_finished,
+          bets:          [],
+        };
+      }
+
+      if (row.bet_id) {
+        matchesMap[row.match_id].bets.push({
+          user_id:       row.user_id,
+          user_name:     row.user_name,
+          avatar_url:    row.avatar_url,
+          bet_home:      row.bet_home,
+          bet_away:      row.bet_away,
+          points_earned: row.points_earned,
+          is_scored:     row.is_scored,
+          is_mine:       row.is_mine,
+        });
+      }
+    }
+
+    res.json({ matches: Object.values(matchesMap) });
+  } catch (err) {
+    console.error('Erro ao buscar palpites públicos:', err);
+    res.status(500).json({ error: 'Erro interno do servidor' });
   }
 });
 

@@ -79,7 +79,6 @@
   <header class="header">
     <div class="header-inner">
       <div class="header-brand">
-        
         <span class="header-title" style="display:flex;align-items:center;gap:0.4rem;font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:1px">
           <img src="/img/img1.jpg" style="width:28px;height:28px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,0.2)" alt="" onerror="this.style.display='none'">
           <s style="color:#6a7f6a;font-size:0.85em;text-decoration:line-through">BruxoBet</s>
@@ -91,6 +90,7 @@
         <button class="nav-btn active" data-page="jogos">Jogos</button>
         <button class="nav-btn" data-page="meus-palpites">Meus Palpites</button>
         <button class="nav-btn" data-page="ranking">Ranking</button>
+        <button class="nav-btn" data-page="todos-palpites">🔍 Palpites</button>
         <a href="/grupos.html" class="nav-btn">🗂️ Grupos</a>
         <button class="nav-btn admin-btn hidden" data-page="admin">⚙️ Admin</button>
       </nav>
@@ -105,6 +105,7 @@
   <nav class="mobile-nav">
     <button class="mnav-btn active" data-page="jogos">⚽<span>Jogos</span></button>
     <button class="mnav-btn" data-page="meus-palpites">🎯<span>Palpites</span></button>
+    <button class="mnav-btn" data-page="todos-palpites">🔍<span>Todos</span></button>
     <a href="/grupos.html" class="mnav-btn">🗂️<span>Grupos</span></a>
     <button class="mnav-btn" data-page="ranking">🏆<span>Ranking</span></button>
     <button class="mnav-btn admin-btn hidden" data-page="admin">⚙️<span>Admin</span></button>
@@ -143,6 +144,28 @@
         <p>Pontuação ao vivo</p>
       </div>
       <div id="ranking-list" class="ranking-container"></div>
+    </div>
+
+    <!-- TODOS OS PALPITES -->
+    <div id="page-todos-palpites" class="page">
+      <div class="page-header">
+        <h2>🔍 Todos os Palpites</h2>
+        <p>Veja o palpite de todo mundo em cada jogo</p>
+      </div>
+
+      <div class="filter-bar" style="gap:10px;flex-wrap:wrap">
+        <input type="text" id="tp-search" placeholder="🔍 Buscar time ou participante…"
+          style="flex:1;min-width:180px;background:var(--card-bg);border:1px solid var(--border);border-radius:8px;padding:7px 13px;color:var(--text);font-size:.9rem;outline:none" />
+        <select id="tp-filter"
+          style="background:var(--card-bg);border:1px solid var(--border);border-radius:8px;padding:7px 12px;color:var(--text);font-size:.9rem;cursor:pointer;outline:none">
+          <option value="all">Todos os jogos</option>
+          <option value="open">Apostas abertas</option>
+          <option value="closed">Apostas fechadas</option>
+          <option value="finished">Com resultado</option>
+        </select>
+      </div>
+
+      <div id="tp-list" class="matches-grid" style="margin-top:16px"></div>
     </div>
 
     <!-- ADMIN -->
@@ -276,5 +299,195 @@
 </div>
 
 <script src="/js/app.js"></script>
+<script>
+// ── Aba Todos os Palpites ─────────────────────────────────────────
+(function () {
+  let allMatches = [];
+
+  function fmt(dateStr) {
+    if (!dateStr) return '—';
+    return new Date(dateStr).toLocaleDateString('pt-BR', {
+      day: '2-digit', month: '2-digit', year: 'numeric',
+      hour: '2-digit', minute: '2-digit',
+    });
+  }
+
+  function betClass(bet, match) {
+    if (!match.is_finished || match.result_home === null) return 'pending';
+    const rH = match.result_home, rA = match.result_away;
+    const bH = bet.bet_home,      bA = bet.bet_away;
+    if (bH === rH && bA === rA) return 'exact';
+    if (Math.sign(bH - bA) === Math.sign(rH - rA)) return 'winner';
+    return 'wrong';
+  }
+
+  function ptsClass(pts) {
+    if (pts >= 10) return 'pts-10';
+    if (pts >= 7)  return 'pts-7';
+    if (pts >= 5)  return 'pts-5';
+    return 'pts-0';
+  }
+
+  async function loadTodosPalpites() {
+    const list = document.getElementById('tp-list');
+    list.innerHTML = '<p style="color:var(--muted);padding:20px">Carregando…</p>';
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/bets/all-by-match', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      allMatches = data.matches || [];
+      renderTP(allMatches);
+    } catch (e) {
+      list.innerHTML = '<p style="color:var(--muted);padding:20px">Erro ao carregar palpites.</p>';
+    }
+  }
+
+  function renderTP(matches) {
+    const list = document.getElementById('tp-list');
+    if (!matches.length) {
+      list.innerHTML = '<p style="color:var(--muted);padding:20px">Nenhum jogo encontrado.</p>';
+      return;
+    }
+
+    list.innerHTML = matches.map(m => {
+      const hasResult = m.is_finished && m.result_home !== null;
+      const scoreText = hasResult ? `${m.result_home}–${m.result_away}` : 'vs';
+
+      const badge = m.is_finished
+        ? `<span class="match-status finished">✅ Encerrado</span>`
+        : m.betting_closed
+          ? `<span class="match-status closed">🔒 Fechado</span>`
+          : `<span class="match-status open">🟢 Aberto</span>`;
+
+      const sorted = [...m.bets].sort((a, b) =>
+        hasResult
+          ? (b.points_earned ?? -1) - (a.points_earned ?? -1)
+          : (a.user_name || '').localeCompare(b.user_name || '')
+      );
+
+      const rows = sorted.length === 0
+        ? `<tr><td colspan="3" style="text-align:center;color:var(--muted);padding:12px">Nenhum palpite ainda</td></tr>`
+        : sorted.map(b => {
+            const cls  = betClass(b, m);
+            const mine = b.is_mine;
+            const ptsEl = (hasResult && b.is_scored)
+              ? `<span class="pts-badge ${ptsClass(b.points_earned)}">${b.points_earned}pts</span>`
+              : `<span style="color:var(--muted)">—</span>`;
+            return `
+              <tr>
+                <td style="font-weight:${mine ? '700' : '400'}">
+                  ${b.user_name}${mine ? ' <span style="font-size:.68rem;background:var(--accent);color:#fff;padding:1px 6px;border-radius:10px">Você</span>' : ''}
+                </td>
+                <td style="font-weight:700;font-size:1rem;letter-spacing:1px;color:${cls==='exact'?'var(--gold)':cls==='winner'?'var(--green)':cls==='wrong'?'var(--red)':'var(--text)'}">
+                  ${b.bet_home}–${b.bet_away}
+                </td>
+                <td>${ptsEl}</td>
+              </tr>`;
+          }).join('');
+
+      return `
+        <div class="match-card tp-card">
+          <div class="tp-header" onclick="this.parentElement.classList.toggle('tp-open')">
+            <div class="match-teams-row">
+              <span>${m.home_flag || '🏳️'} ${m.home_team}</span>
+              <span class="tp-score">${scoreText}</span>
+              <span>${m.away_team} ${m.away_flag || '🏳️'}</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+              <span style="font-size:.78rem;color:var(--muted)">${fmt(m.match_date)}</span>
+              ${badge}
+              <span style="color:var(--muted);font-size:.8rem;margin-left:auto">▼</span>
+            </div>
+          </div>
+          <div class="tp-body">
+            <table style="width:100%;border-collapse:collapse;font-size:.88rem">
+              <thead>
+                <tr style="background:var(--card-bg)">
+                  <th style="padding:8px 12px;text-align:left;font-size:.75rem;color:var(--muted);text-transform:uppercase">Participante</th>
+                  <th style="padding:8px 12px;text-align:left;font-size:.75rem;color:var(--muted);text-transform:uppercase">Palpite</th>
+                  <th style="padding:8px 12px;text-align:left;font-size:.75rem;color:var(--muted);text-transform:uppercase">Pontos</th>
+                </tr>
+              </thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  function applyTPFilters() {
+    const q = document.getElementById('tp-search').value.toLowerCase().trim();
+    const f = document.getElementById('tp-filter').value;
+
+    const filtered = allMatches.filter(m => {
+      if (f === 'open'     && (m.betting_closed || m.is_finished)) return false;
+      if (f === 'closed'   && (!m.betting_closed || m.is_finished)) return false;
+      if (f === 'finished' && !m.is_finished) return false;
+      if (!q) return true;
+      return m.home_team.toLowerCase().includes(q) ||
+             m.away_team.toLowerCase().includes(q) ||
+             m.bets.some(b => b.user_name?.toLowerCase().includes(q));
+    });
+
+    renderTP(filtered);
+  }
+
+  document.getElementById('tp-search').addEventListener('input', applyTPFilters);
+  document.getElementById('tp-filter').addEventListener('change', applyTPFilters);
+
+  // Carregar quando a aba for aberta
+  document.addEventListener('click', e => {
+    const btn = e.target.closest('[data-page="todos-palpites"]');
+    if (btn) loadTodosPalpites();
+  });
+})();
+</script>
+
+<style>
+/* ── Todos os Palpites ── */
+.tp-card { margin-bottom: 14px; }
+
+.tp-header {
+  padding: 14px 16px;
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.tp-header:hover { background: var(--card-hover, rgba(255,255,255,.04)); }
+
+.match-teams-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-weight: 600;
+  font-size: .95rem;
+  flex-wrap: wrap;
+}
+
+.tp-score {
+  font-size: 1.1rem;
+  font-weight: 700;
+  background: rgba(255,255,255,.07);
+  border-radius: 6px;
+  padding: 3px 12px;
+  letter-spacing: 2px;
+}
+
+.tp-body {
+  display: none;
+  border-top: 1px solid var(--border);
+}
+.tp-body td { padding: 8px 12px; border-top: 1px solid var(--border); }
+.tp-body tr:hover td { background: rgba(255,255,255,.03); }
+
+.tp-card.tp-open .tp-header span:last-child { transform: rotate(180deg); display: inline-block; }
+.tp-card.tp-open .tp-body { display: block; }
+</style>
+
 </body>
 </html>
