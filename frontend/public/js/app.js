@@ -11,6 +11,9 @@ let currentMatch = null;
 let allMatches   = [];
 let activeFilter = 'all';
 
+// ── Todos os Palpites ──
+let tpAllMatches = [];
+
 /* =============================================
    UTILS
 ============================================= */
@@ -60,7 +63,6 @@ function betStatus(match) {
 /* =============================================
    AUTH
 ============================================= */
-// Tabs
 document.querySelectorAll('.auth-tab').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.auth-tab').forEach(b => b.classList.remove('active'));
@@ -70,7 +72,6 @@ document.querySelectorAll('.auth-tab').forEach(btn => {
   });
 });
 
-// Login
 $('login-form').addEventListener('submit', async e => {
   e.preventDefault();
   const btn = e.target.querySelector('button');
@@ -88,7 +89,6 @@ $('login-form').addEventListener('submit', async e => {
   } finally { btn.textContent = 'Entrar'; btn.disabled = false; }
 });
 
-// Register
 $('register-form').addEventListener('submit', async e => {
   e.preventDefault();
   const btn = e.target.querySelector('button');
@@ -106,7 +106,6 @@ $('register-form').addEventListener('submit', async e => {
   } finally { btn.textContent = 'Criar conta'; btn.disabled = false; }
 });
 
-// Logout
 $('logout-btn').addEventListener('click', () => {
   localStorage.removeItem('token');
   currentUser = null;
@@ -123,15 +122,15 @@ function navigate(page) {
   $(`page-${page}`).classList.add('active');
   document.querySelectorAll(`[data-page="${page}"]`).forEach(b => b.classList.add('active'));
 
-  // Load data for page
-  if (page === 'jogos') loadMatches();
-  if (page === 'meus-palpites') loadMyBets();
-  if (page === 'ranking') loadRanking();
-  if (page === 'admin') loadAdmin();
+  if (page === 'jogos')           loadMatches();
+  if (page === 'meus-palpites')   loadMyBets();
+  if (page === 'ranking')         loadRanking();
+  if (page === 'admin')           loadAdmin();
+  if (page === 'todos-palpites')  loadTodosPalpites();
 }
 
 document.querySelectorAll('.nav-btn, .mnav-btn').forEach(btn => {
-  btn.addEventListener('click', () => navigate(btn.dataset.page));
+  if (btn.dataset.page) btn.addEventListener('click', () => navigate(btn.dataset.page));
 });
 
 /* =============================================
@@ -168,7 +167,6 @@ function renderMatches() {
 
   list.innerHTML = filtered.map(m => matchCard(m)).join('');
 
-  // Attach click events
   list.querySelectorAll('.match-card[data-id]').forEach(card => {
     card.addEventListener('click', () => {
       const m = allMatches.find(x => x.id == card.dataset.id);
@@ -230,7 +228,6 @@ function matchCard(m) {
   </div>`;
 }
 
-// Filters
 document.querySelectorAll('.filter-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
@@ -252,7 +249,6 @@ function openBetModal(match) {
   $('modal-away-flag').textContent = match.away_flag || '🏳️';
   $('modal-away-name').textContent = match.away_team_name;
 
-  // Pre-fill existing bet
   $('bet-home').value = match.home_score_bet ?? 0;
   $('bet-away').value = match.away_score_bet ?? 0;
 
@@ -277,22 +273,21 @@ $('save-bet-btn').addEventListener('click', async () => {
       })
     });
     showMsg('bet-msg', '✅ Palpite salvo!', 'success');
-setTimeout(() => {
-  loadMatches().then(() => {
-    // Acha o próximo jogo aberto depois do atual
-    const abertos = allMatches.filter(m => {
-      const { cls } = betStatus(m);
-      return cls === 'status-open';
-    });
-    const idx = abertos.findIndex(m => m.id === currentMatch.id);
-    const proximo = abertos[idx + 1];
-    if (proximo) {
-      openBetModal(proximo);
-    } else {
-      $('bet-modal').classList.add('hidden');
-    }
-  });
-}, 800);
+    setTimeout(() => {
+      loadMatches().then(() => {
+        const abertos = allMatches.filter(m => {
+          const { cls } = betStatus(m);
+          return cls === 'status-open';
+        });
+        const idx = abertos.findIndex(m => m.id === currentMatch.id);
+        const proximo = abertos[idx + 1];
+        if (proximo) {
+          openBetModal(proximo);
+        } else {
+          $('bet-modal').classList.add('hidden');
+        }
+      });
+    }, 800);
   } catch (err) {
     showMsg('bet-msg', err.message, 'error');
   } finally { btn.textContent = 'Salvar Palpite ⚽'; btn.disabled = false; }
@@ -379,7 +374,10 @@ async function loadRanking() {
     list.innerHTML = rows.map((r, i) => {
       const pos = i + 1;
       const posClass = pos === 1 ? 'top1' : pos === 2 ? 'top2' : pos === 3 ? 'top3' : '';
-      const isMe = currentUser && r.id === currentUser.id;
+      // compatível com id ou user_id no retorno da API
+      const rowUserId = r.id || r.user_id;
+      const isMe = currentUser && rowUserId == currentUser.id;
+      const isAdmin = currentUser?.is_admin && isMe;
       const medal = pos === 1 ? '🥇' : pos === 2 ? '🥈' : pos === 3 ? '🥉' : pos;
       const initials = r.name.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase();
       return `
@@ -387,7 +385,11 @@ async function loadRanking() {
         <div class="rank-pos">${medal}</div>
         <div class="rank-avatar">${r.avatar_url ? `<img src="${r.avatar_url}" style="width:100%;height:100%;border-radius:50%;object-fit:cover"/>` : initials}</div>
         <div class="rank-info">
-          <div class="rank-name">${r.name} ${isMe ? '<span style="color:var(--gold);font-size:0.75rem">(você)</span>' : ''}</div>
+          <div class="rank-name">
+            ${r.name}
+            ${isMe ? '<span style="color:var(--gold);font-size:0.75rem">(você)</span>' : ''}
+            ${isAdmin ? '<span style="color:var(--accent);font-size:0.72rem;background:rgba(35,134,54,0.2);padding:1px 6px;border-radius:8px;margin-left:4px">⚙️ Admin</span>' : ''}
+          </div>
           <div class="rank-details">
             <div class="rank-detail">🎯 Palpites: <span>${r.total_bets}</span></div>
             <div class="rank-detail">🎯 Exatos: <span>${r.exact_scores}</span></div>
@@ -404,6 +406,124 @@ async function loadRanking() {
 }
 
 /* =============================================
+   TODOS OS PALPITES
+============================================= */
+async function loadTodosPalpites() {
+  const list = $('tp-list');
+  list.innerHTML = `<div class="loading"><div class="spinner"></div> Carregando palpites...</div>`;
+  try {
+    const data = await api('/bets/all-by-match');
+    tpAllMatches = data.matches || [];
+    renderTP(tpAllMatches);
+  } catch (err) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><p>${err.message}</p></div>`;
+  }
+}
+
+function renderTP(matches) {
+  const list = $('tp-list');
+  if (!matches.length) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon">🔍</div><p>Nenhum jogo encontrado.</p></div>`;
+    return;
+  }
+
+  list.innerHTML = matches.map(m => {
+    const hasResult = m.is_finished && m.result_home !== null;
+    const scoreText = hasResult ? `${m.result_home}–${m.result_away}` : 'VS';
+
+    const badge = m.is_finished
+      ? `<span class="status-badge status-done">✅ Encerrado</span>`
+      : m.betting_closed
+        ? `<span class="status-badge status-closed">🔒 Fechado</span>`
+        : `<span class="status-badge status-open">🟢 Aberto</span>`;
+
+    const sorted = [...m.bets].sort((a, b) =>
+      hasResult
+        ? (b.points_earned ?? -1) - (a.points_earned ?? -1)
+        : (a.user_name || '').localeCompare(b.user_name || '')
+    );
+
+    const rows = sorted.length === 0
+      ? `<tr><td colspan="3" style="text-align:center;color:var(--gray-mid);padding:14px">Nenhum palpite registrado</td></tr>`
+      : sorted.map(b => {
+          let betColor = 'var(--text)';
+          if (hasResult) {
+            const rH = m.result_home, rA = m.result_away;
+            const bH = b.bet_home,    bA = b.bet_away;
+            if (bH === rH && bA === rA)                            betColor = 'var(--gold)';
+            else if (Math.sign(bH - bA) === Math.sign(rH - rA))   betColor = 'var(--green, #3fb950)';
+            else                                                    betColor = 'var(--red, #da3633)';
+          }
+          const ptsEl = (hasResult && b.is_scored)
+            ? (() => {
+                const p = b.points_earned;
+                const cls = p >= 10 ? 'pts-10' : p >= 7 ? 'pts-7' : p >= 5 ? 'pts-5' : 'pts-0';
+                return `<span class="pts-badge ${cls}">${p}pts</span>`;
+              })()
+            : `<span style="color:var(--gray-mid)">—</span>`;
+
+          return `
+            <tr>
+              <td style="font-weight:${b.is_mine ? '700' : '400'}">
+                ${b.user_name}
+                ${b.is_mine ? '<span style="font-size:.68rem;background:var(--accent,#238636);color:#fff;padding:1px 6px;border-radius:10px;margin-left:4px">Você</span>' : ''}
+              </td>
+              <td style="font-weight:700;font-size:1rem;letter-spacing:1px;color:${betColor}">
+                ${b.bet_home}–${b.bet_away}
+              </td>
+              <td>${ptsEl}</td>
+            </tr>`;
+        }).join('');
+
+    return `
+      <div class="match-card tp-card">
+        <div class="tp-header" onclick="this.parentElement.classList.toggle('tp-open')">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;font-weight:600;font-size:.95rem">
+            <span>${m.home_flag || '🏳️'} ${m.home_team}</span>
+            <span style="background:rgba(255,255,255,.07);border-radius:6px;padding:3px 12px;font-size:1.05rem;letter-spacing:2px">${scoreText}</span>
+            <span>${m.away_team} ${m.away_flag || '🏳️'}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap">
+            <span style="font-size:.78rem;color:var(--gray-mid)">${formatDate(m.match_date)}</span>
+            ${badge}
+            <span style="font-size:.78rem;color:var(--gray-mid)">${sorted.length} palpite${sorted.length !== 1 ? 's' : ''}</span>
+            <span style="color:var(--gray-mid);font-size:.8rem;margin-left:auto">▼</span>
+          </div>
+        </div>
+        <div class="tp-body">
+          <table style="width:100%;border-collapse:collapse;font-size:.88rem">
+            <thead>
+              <tr style="background:rgba(255,255,255,.03)">
+                <th style="padding:8px 14px;text-align:left;font-size:.75rem;color:var(--gray-mid);text-transform:uppercase;font-weight:600">Participante</th>
+                <th style="padding:8px 14px;text-align:left;font-size:.75rem;color:var(--gray-mid);text-transform:uppercase;font-weight:600">Palpite</th>
+                <th style="padding:8px 14px;text-align:left;font-size:.75rem;color:var(--gray-mid);text-transform:uppercase;font-weight:600">Pontos</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function applyTPFilters() {
+  const q = $('tp-search').value.toLowerCase().trim();
+  const f = $('tp-filter').value;
+
+  const filtered = tpAllMatches.filter(m => {
+    if (f === 'open'     && (m.betting_closed || m.is_finished)) return false;
+    if (f === 'closed'   && (!m.betting_closed || m.is_finished)) return false;
+    if (f === 'finished' && !m.is_finished) return false;
+    if (!q) return true;
+    return m.home_team.toLowerCase().includes(q) ||
+           m.away_team.toLowerCase().includes(q) ||
+           m.bets.some(b => b.user_name?.toLowerCase().includes(q));
+  });
+
+  renderTP(filtered);
+}
+
+/* =============================================
    ADMIN PAGE
 ============================================= */
 async function loadAdmin() {
@@ -415,15 +535,12 @@ async function loadAdmin() {
       api('/teams/groups/all')
     ]);
 
-    // Populate team selects
     const teamOpts = teams.map(t => `<option value="${t.id}">${t.flag_emoji || ''} ${t.name} (${t.code})</option>`).join('');
     ['am-home', 'am-away'].forEach(id => { $(id).innerHTML = teamOpts; });
 
-    // Populate group select
     const groupOpts = `<option value="">Nenhum</option>` + groups.map(g => `<option value="${g.id}">Grupo ${g.name}</option>`).join('');
     $('am-group').innerHTML = groupOpts;
 
-    // Load matches for result select
     const matches = await api('/matches');
     const openMatches = matches.filter(m => !m.is_finished);
     const resultOpts = openMatches.map(m =>
@@ -431,7 +548,6 @@ async function loadAdmin() {
     ).join('');
     $('result-match').innerHTML = resultOpts || '<option value="">Nenhum jogo pendente</option>';
 
-    // Render all matches in admin list
     renderAdminMatches(matches);
 
   } catch (err) {
@@ -461,7 +577,6 @@ function renderAdminMatches(matches) {
     </div>`).join('');
 }
 
-// Add match form
 $('add-match-form').addEventListener('submit', async e => {
   e.preventDefault();
   const btn = e.target.querySelector('button[type=submit]');
@@ -487,7 +602,6 @@ $('add-match-form').addEventListener('submit', async e => {
   } finally { btn.textContent = 'Adicionar Jogo'; btn.disabled = false; }
 });
 
-// Register result form
 $('result-form').addEventListener('submit', async e => {
   e.preventDefault();
   const matchId = $('result-match').value;
@@ -527,14 +641,18 @@ async function initApp() {
     currentUser = await api('/auth/me');
     $('header-username').textContent = currentUser.name;
 
-    // Mostrar botão admin se for admin
     if (currentUser.is_admin) {
       document.querySelectorAll('.admin-btn').forEach(b => b.classList.remove('hidden'));
     }
 
-    // Trocar telas
     document.getElementById('auth-screen').classList.remove('active');
     document.getElementById('app-screen').classList.add('active');
+
+    // Registrar filtros da aba de palpites
+    const tpSearch = $('tp-search');
+    const tpFilter = $('tp-filter');
+    if (tpSearch) tpSearch.addEventListener('input', applyTPFilters);
+    if (tpFilter) tpFilter.addEventListener('change', applyTPFilters);
 
     navigate('jogos');
   } catch (err) {
@@ -542,5 +660,4 @@ async function initApp() {
   }
 }
 
-// Auto-login na abertura
 initApp();
