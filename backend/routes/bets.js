@@ -32,7 +32,6 @@ router.get('/all-by-match', auth, async (req, res) => {
   try {
     const userId = req.user.id;
 
-    // Busca palpites + quem falta em cada jogo via LEFT JOIN no próprio SQL
     const result = await db.query(`
       SELECT
         m.id                         AS match_id,
@@ -65,29 +64,24 @@ router.get('/all-by-match', auth, async (req, res) => {
       ORDER BY m.match_date ASC, m.id, u.name ASC
     `, [userId]);
 
-    // Busca quem falta por jogo direto no SQL (usuários sem aposta naquele jogo)
+    // Quem ainda não apostou em cada jogo (todos os usuários, incluindo admins)
     const missingResult = await db.query(`
-      SELECT
-        m.id AS match_id,
-        u.name AS user_name
+      SELECT m.id AS match_id, u.name AS user_name
       FROM matches m
       CROSS JOIN users u
-      WHERE 1=1
-        AND NOT EXISTS (
-          SELECT 1 FROM bets b
-          WHERE b.match_id = m.id AND b.user_id = u.id
-        )
+      WHERE NOT EXISTS (
+        SELECT 1 FROM bets b
+        WHERE b.match_id = m.id AND b.user_id = u.id
+      )
       ORDER BY m.id, u.name ASC
     `);
 
-    // Agrupar missing por match_id
     const missingMap = {};
     for (const row of missingResult.rows) {
       if (!missingMap[row.match_id]) missingMap[row.match_id] = [];
       missingMap[row.match_id].push(row.user_name);
     }
 
-    // Montar mapa de jogos
     const matchesMap = {};
     for (const row of result.rows) {
       if (!matchesMap[row.match_id]) {
@@ -123,9 +117,7 @@ router.get('/all-by-match', auth, async (req, res) => {
       }
     }
 
-    const matches = Object.values(matchesMap);
-    console.log('missing sample:', matches[0]?.missing);
-    res.json({ matches });
+    res.json({ matches: Object.values(matchesMap) });
   } catch (err) {
     console.error('Erro ao buscar palpites públicos:', err);
     res.status(500).json({ error: 'Erro interno do servidor' });
