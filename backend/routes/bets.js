@@ -32,6 +32,13 @@ router.get('/all-by-match', auth, async (req, res) => {
   try {
     const userId = req.user.id;
 
+    // Busca todos os usuários do site
+    const usersRes = await db.query(
+      `SELECT id::text AS id, name, is_admin FROM users ORDER BY name ASC`
+    );
+    const allUsers = usersRes.rows; // [{ id, name, is_admin }]
+
+    // Busca todos os palpites de todos os jogos
     const result = await db.query(`
       SELECT
         m.id                         AS match_id,
@@ -50,6 +57,7 @@ router.get('/all-by-match', auth, async (req, res) => {
         b.id                         AS bet_id,
         b.user_id::text              AS user_id,
         u.name                       AS user_name,
+        u.is_admin                   AS user_is_admin,
         u.avatar_url,
         b.home_score_bet             AS bet_home,
         b.away_score_bet             AS bet_away,
@@ -64,24 +72,7 @@ router.get('/all-by-match', auth, async (req, res) => {
       ORDER BY m.match_date ASC, m.id, u.name ASC
     `, [userId]);
 
-    // Quem ainda não apostou em cada jogo (todos os usuários, incluindo admins)
-    const missingResult = await db.query(`
-      SELECT m.id AS match_id, u.name AS user_name
-      FROM matches m
-      CROSS JOIN users u
-      WHERE NOT EXISTS (
-        SELECT 1 FROM bets b
-        WHERE b.match_id = m.id AND b.user_id = u.id
-      )
-      ORDER BY m.id, u.name ASC
-    `);
-
-    const missingMap = {};
-    for (const row of missingResult.rows) {
-      if (!missingMap[row.match_id]) missingMap[row.match_id] = [];
-      missingMap[row.match_id].push(row.user_name);
-    }
-
+    // Monta mapa de jogos
     const matchesMap = {};
     for (const row of result.rows) {
       if (!matchesMap[row.match_id]) {
@@ -100,13 +91,13 @@ router.get('/all-by-match', auth, async (req, res) => {
           betting_closed: row.betting_closed,
           is_finished:    row.is_finished,
           bets:           [],
-          missing:        missingMap[row.match_id] || [],
         };
       }
       if (row.bet_id) {
         matchesMap[row.match_id].bets.push({
           user_id:       row.user_id,
           user_name:     row.user_name,
+          user_is_admin: row.user_is_admin,
           avatar_url:    row.avatar_url,
           bet_home:      row.bet_home,
           bet_away:      row.bet_away,
@@ -117,7 +108,16 @@ router.get('/all-by-match', auth, async (req, res) => {
       }
     }
 
-    res.json({ matches: Object.values(matchesMap) });
+    // Calcula missing em JS: quem não tem bet naquele jogo
+    const matches = Object.values(matchesMap).map(m => {
+      const betUserIds = new Set(m.bets.map(b => b.user_id));
+      m.missing = allUsers
+        .filter(u => !betUserIds.has(u.id))
+        .map(u => u.is_admin ? `${u.name} (admin)` : u.name);
+      return m;
+    });
+
+    res.json({ matches });
   } catch (err) {
     console.error('Erro ao buscar palpites públicos:', err);
     res.status(500).json({ error: 'Erro interno do servidor' });
