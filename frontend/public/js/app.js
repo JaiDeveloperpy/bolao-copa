@@ -368,34 +368,50 @@ function buildTPTable(m) {
     hasResult ? (b.points_earned ?? -1) - (a.points_earned ?? -1)
               : (a.user_name || '').localeCompare(b.user_name || '')
   );
-  if (!sorted.length) return `<div style="padding:1rem 1.25rem;color:var(--gray-mid);font-size:0.85rem">Nenhum palpite ainda.</div>`;
-  const rows = sorted.map(b => {
-    let betColor = 'var(--off-white)';
-    if (hasResult) {
-      const rH = m.result_home, rA = m.result_away, bH = b.bet_home, bA = b.bet_away;
-      if (bH === rH && bA === rA)                          betColor = 'var(--gold)';
-      else if (Math.sign(bH - bA) === Math.sign(rH - rA)) betColor = 'var(--green-neon)';
-      else                                                 betColor = 'var(--red-light)';
-    }
-    const ptsEl = hasResult && b.is_scored
-      ? (() => { const p = b.points_earned; const c = p>=10?'pts-10':p>=7?'pts-7':p>=5?'pts-5':'pts-0'; return `<span class="pts-badge ${c}">${p}pts</span>`; })()
-      : `<span style="color:var(--gray-mid);font-size:0.8rem">—</span>`;
-    return `<tr style="border-top:1px solid rgba(255,255,255,0.06)">
-      <td style="padding:0.65rem 1rem;font-size:0.88rem;font-weight:${b.is_mine?'700':'400'}">
-        ${b.user_name}${b.is_mine?`<span style="font-size:.65rem;background:var(--green-main);color:var(--white);padding:1px 6px;border-radius:8px;margin-left:5px">Você</span>`:''}
-      </td>
-      <td style="padding:0.65rem 1rem;font-family:'Bebas Neue',sans-serif;font-size:1.15rem;letter-spacing:2px;color:${betColor}">${b.bet_home} – ${b.bet_away}</td>
-      <td style="padding:0.65rem 1rem">${ptsEl}</td>
-    </tr>`;
-  }).join('');
-  return `<table style="width:100%;border-collapse:collapse">
+
+  const betsHtml = !sorted.length
+    ? `<div style="padding:0.8rem 1rem;color:var(--gray-mid);font-size:0.85rem">Nenhum palpite ainda.</div>`
+    : `<table style="width:100%;border-collapse:collapse">
     <thead><tr style="background:rgba(0,0,0,0.15)">
       <th style="padding:0.5rem 1rem;text-align:left;font-size:0.72rem;color:var(--gray-light);text-transform:uppercase;letter-spacing:.5px;font-weight:600">Participante</th>
       <th style="padding:0.5rem 1rem;text-align:left;font-size:0.72rem;color:var(--gray-light);text-transform:uppercase;letter-spacing:.5px;font-weight:600">Palpite</th>
       <th style="padding:0.5rem 1rem;text-align:left;font-size:0.72rem;color:var(--gray-light);text-transform:uppercase;letter-spacing:.5px;font-weight:600">Pontos</th>
     </tr></thead>
-    <tbody>${rows}</tbody>
+    <tbody>${sorted.map(b => {
+      let betColor = 'var(--off-white)';
+      if (hasResult) {
+        const rH = m.result_home, rA = m.result_away, bH = b.bet_home, bA = b.bet_away;
+        if (bH === rH && bA === rA)                          betColor = 'var(--gold)';
+        else if (Math.sign(bH - bA) === Math.sign(rH - rA)) betColor = 'var(--green-neon)';
+        else                                                 betColor = 'var(--red-light)';
+      }
+      const ptsEl = hasResult && b.is_scored
+        ? (() => { const p = b.points_earned; const c = p>=10?'pts-10':p>=7?'pts-7':p>=5?'pts-5':'pts-0'; return `<span class="pts-badge ${c}">${p}pts</span>`; })()
+        : `<span style="color:var(--gray-mid);font-size:0.8rem">—</span>`;
+      return `<tr style="border-top:1px solid rgba(255,255,255,0.06)">
+        <td style="padding:0.65rem 1rem;font-size:0.88rem;font-weight:${b.is_mine?'700':'400'}">
+          ${b.user_name}${b.is_mine?`<span style="font-size:.65rem;background:var(--green-main);color:var(--white);padding:1px 6px;border-radius:8px;margin-left:5px">Você</span>`:''}
+        </td>
+        <td style="padding:0.65rem 1rem;font-family:'Bebas Neue',sans-serif;font-size:1.15rem;letter-spacing:2px;color:${betColor}">${b.bet_home} – ${b.bet_away}</td>
+        <td style="padding:0.65rem 1rem">${ptsEl}</td>
+      </tr>`;
+    }).join('')}</tbody>
   </table>`;
+
+  // Seção "Anti @all do Samuelito" — quem ainda não apostou
+  const missing = m.missing || [];
+  const antiAllHtml = !m.is_finished && missing.length > 0
+    ? `<div style="border-top:1px solid rgba(255,165,0,0.2);background:rgba(255,140,0,0.06);padding:0.75rem 1rem">
+        <div style="font-size:0.72rem;font-weight:700;color:#f59e0b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:0.4rem">
+          🚨 Anti @all do Samuelito — ainda não apostaram (${missing.length})
+        </div>
+        <div style="font-size:0.83rem;color:var(--gray-light);line-height:1.6">
+          ${missing.map(name => `<span style="display:inline-block;background:rgba(255,255,255,0.07);border-radius:6px;padding:1px 8px;margin:2px 3px 2px 0">${name}</span>`).join('')}
+        </div>
+      </div>`
+    : '';
+
+  return betsHtml + antiAllHtml;
 }
 
 function renderTP(matches) {
