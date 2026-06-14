@@ -325,7 +325,7 @@ async function loadRanking() {
         <div class="rank-avatar">${r.avatar_url ? `<img src="${r.avatar_url}" style="width:100%;height:100%;border-radius:50%;object-fit:cover"/>` : initials}</div>
         <div class="rank-info">
           <div class="rank-name">
-            ${r.name}
+            <span class="rank-name-link" data-user-id="${rowUserId}" data-user-name="${r.name}" style="cursor:pointer;text-decoration:underline;text-decoration-color:rgba(255,255,255,0.2);text-underline-offset:3px">${r.name}</span>
             ${isMe ? ' <span style="color:var(--gold);font-size:0.75rem">(você)</span>' : ''}
             ${r.is_admin ? ' <span style="color:var(--green-neon);font-size:0.72rem;background:rgba(57,255,137,0.1);padding:1px 7px;border-radius:8px;margin-left:4px">⚙️ Admin</span>' : ''}
           </div>
@@ -342,6 +342,94 @@ async function loadRanking() {
   } catch (err) {
     list.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><p>${err.message}</p></div>`;
   }
+
+  // Clique no nome do ranking → ver palpites da pessoa
+  list.querySelectorAll('.rank-name-link').forEach(el => {
+    el.addEventListener('click', () => {
+      openUserBetsModal(el.dataset.userId, el.dataset.userName);
+    });
+  });
+}
+
+/* =============================================
+   MODAL PALPITES DE UM USUÁRIO (via ranking)
+============================================= */
+async function openUserBetsModal(userId, userName) {
+  // Cria modal dinamicamente se não existir
+  let modal = $('user-bets-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'user-bets-modal';
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+      <div class="modal" style="max-width:580px;padding:0;overflow:hidden;max-height:90vh;display:flex;flex-direction:column">
+        <div style="padding:1.25rem 1.5rem 1rem;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+          <div>
+            <div id="ubm-title" style="font-weight:700;font-size:1rem"></div>
+            <div id="ubm-stats" style="font-size:0.78rem;color:var(--gray-light);margin-top:3px"></div>
+          </div>
+          <button id="ubm-close" class="modal-close" style="position:static">✕</button>
+        </div>
+        <div id="ubm-body" style="overflow-y:auto;flex:1"></div>
+      </div>`;
+    document.body.appendChild(modal);
+    $('ubm-close').addEventListener('click', () => modal.classList.add('hidden'));
+    modal.addEventListener('click', e => { if (e.target === modal) modal.classList.add('hidden'); });
+  }
+
+  $('ubm-title').textContent = `Palpites de ${userName}`;
+  $('ubm-stats').textContent = 'Carregando...';
+  $('ubm-body').innerHTML = `<div class="loading"><div class="spinner"></div></div>`;
+  modal.classList.remove('hidden');
+
+  try {
+    // Busca todos os palpites e filtra pelo userId + só jogos fechados
+    const data = await api('/bets/all-by-match');
+    const matches = (data.matches || []).filter(m => m.betting_closed || m.is_finished);
+
+    const userBets = [];
+    for (const m of matches) {
+      const bet = m.bets.find(b => b.user_id === userId || String(b.user_id) === String(userId));
+      if (bet) userBets.push({ match: m, bet });
+    }
+
+    const total = userBets.reduce((s, x) => s + (x.bet.points_earned || 0), 0);
+    const exact = userBets.filter(x => x.bet.points_earned === 10).length;
+    $('ubm-stats').textContent = `${userBets.length} palpites · ${total} pontos · ${exact} placares exatos`;
+
+    if (!userBets.length) {
+      $('ubm-body').innerHTML = `<div style="padding:2rem;text-align:center;color:var(--gray-mid)">Nenhum palpite em jogos fechados ainda.</div>`;
+      return;
+    }
+
+    $('ubm-body').innerHTML = userBets.map(({ match: m, bet: b }) => {
+      const hasResult = m.is_finished && m.result_home !== null;
+      let betColor = 'var(--off-white)';
+      if (hasResult) {
+        const rH = m.result_home, rA = m.result_away, bH = b.bet_home, bA = b.bet_away;
+        if (bH === rH && bA === rA)                          betColor = 'var(--gold)';
+        else if (Math.sign(bH - bA) === Math.sign(rH - rA)) betColor = 'var(--green-neon)';
+        else                                                 betColor = 'var(--red-light)';
+      }
+      const ptsEl = hasResult && b.is_scored
+        ? (() => { const p = b.points_earned; const c = p>=10?'pts-10':p>=7?'pts-7':p>=5?'pts-5':'pts-0'; return `<span class="pts-badge ${c}">${p}pts</span>`; })()
+        : `<span style="color:var(--gray-mid);font-size:0.8rem">—</span>`;
+      const scoreEl = hasResult ? `${m.result_home} – ${m.result_away}` : 'VS';
+
+      return `
+      <div style="padding:0.9rem 1.25rem;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;gap:1rem;flex-wrap:wrap">
+        <div style="flex:1;min-width:160px">
+          <div style="font-size:0.72rem;color:var(--gray-mid);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">${phaseLabel(m.phase)} · ${formatDate(m.match_date)}</div>
+          <div style="font-weight:600;font-size:0.9rem">${m.home_flag||'🏳️'} ${m.home_team} <span style="color:var(--gray-mid);font-size:0.8rem">${scoreEl}</span> ${m.away_team} ${m.away_flag||'🏳️'}</div>
+        </div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:1.2rem;letter-spacing:2px;color:${betColor}">${b.bet_home} – ${b.bet_away}</div>
+        <div style="min-width:60px;text-align:right">${ptsEl}</div>
+      </div>`;
+    }).join('');
+
+  } catch (err) {
+    $('ubm-body').innerHTML = `<div style="padding:2rem;text-align:center;color:var(--gray-mid)">Erro ao carregar palpites.</div>`;
+  }
 }
 
 
@@ -355,7 +443,8 @@ async function loadTodosPalpites() {
   list.innerHTML = `<div class="loading"><div class="spinner"></div> Carregando palpites...</div>`;
   try {
     const data = await api('/bets/all-by-match');
-    tpAllMatches = data.matches || [];
+    // Só mostrar jogos com apostas fechadas ou finalizados
+    tpAllMatches = (data.matches || []).filter(m => m.betting_closed || m.is_finished);
     renderTP(tpAllMatches);
   } catch (err) {
     list.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><p>${err.message}</p></div>`;
@@ -476,9 +565,8 @@ function applyTPFilters() {
   const q = $('tp-search').value.toLowerCase().trim();
   const f = $('tp-filter').value;
   const filtered = tpAllMatches.filter(m => {
-    if (f === 'open'     && (m.betting_closed || m.is_finished))  return false;
-    if (f === 'closed'   && (!m.betting_closed || m.is_finished)) return false;
-    if (f === 'finished' && !m.is_finished)                       return false;
+    if (f === 'closed'   && m.is_finished)   return false;
+    if (f === 'finished' && !m.is_finished)  return false;
     if (!q) return true;
     return m.home_team.toLowerCase().includes(q) ||
            m.away_team.toLowerCase().includes(q) ||
