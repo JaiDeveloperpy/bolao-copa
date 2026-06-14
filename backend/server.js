@@ -1,9 +1,9 @@
 require('dotenv').config();
 const express = require('express');
-const cors = require('cors');
-const path = require('path');
+const cors    = require('cors');
+const path    = require('path');
 
-const app = express();
+const app  = express();
 const PORT = process.env.PORT || 3001;
 
 // =============================================
@@ -51,4 +51,8 @@ app.use((err, req, res, next) => {
 app.listen(PORT, () => {
   console.log(`⚽ Bolão Copa 2026 rodando na porta ${PORT}`);
   console.log(`🔗 http://localhost:${PORT}`);
+
+  // Inicia cron de fechamento automático e busca de placares
+  const { iniciarCron } = require('./cron');
+  iniciarCron();
 });
