@@ -139,7 +139,18 @@ async function loadMatches() {
   const list = $('matches-list');
   list.innerHTML = `<div class="loading"><div class="spinner"></div> Carregando jogos...</div>`;
   try {
-    allMatches = await api('/matches');
+    // Busca jogos e palpites em paralelo
+    const [matches, betsData] = await Promise.all([
+      api('/matches'),
+      api('/bets/all-by-match')
+    ]);
+    allMatches = matches;
+    // Mapear missing por match_id para usar nos cards
+    const missingMap = {};
+    for (const m of (betsData.matches || [])) {
+      missingMap[m.id] = m.missing || [];
+    }
+    allMatches = allMatches.map(m => ({ ...m, missing: missingMap[m.id] || [] }));
     renderMatches();
   } catch (err) {
     list.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><p>${err.message}</p></div>`;
@@ -196,6 +207,13 @@ function matchCard(m) {
       <div class="card-team"><span class="flag">${m.away_flag||'🏳️'}</span><span class="tname">${m.away_team_name}</span></div>
     </div>
     ${betEl || m.city ? `<div class="card-bottom">${betEl}${m.city ? `<span style="font-size:0.75rem;color:var(--gray-mid)">📍 ${m.city}</span>` : ''}</div>` : ''}
+    ${!m.is_finished && !m.betting_closed && m.missing && m.missing.length > 0 ? `
+    <div style="padding:0.5rem 1rem 0.7rem;border-top:1px solid rgba(255,165,0,0.15);background:rgba(255,140,0,0.05)">
+      <div style="font-size:0.68rem;font-weight:700;color:#f59e0b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:0.3rem">⚠️ Sem palpite (${m.missing.length})</div>
+      <div style="font-size:0.78rem;color:var(--gray-light);line-height:1.6">
+        ${m.missing.map(name => `<span style="display:inline-block;background:rgba(255,255,255,0.07);border-radius:5px;padding:1px 7px;margin:1px 2px">${name}</span>`).join('')}
+      </div>
+    </div>` : ''}
   </div>`;
 }
 
@@ -487,20 +505,7 @@ function buildTPTable(m) {
     }).join('')}</tbody>
   </table>`;
 
-  // Seção "Anti @all do Samuelito" — quem ainda não apostou
-  const missing = m.missing || [];
-  const antiAllHtml = !m.is_finished && missing.length > 0
-    ? `<div style="border-top:1px solid rgba(255,165,0,0.2);background:rgba(255,140,0,0.06);padding:0.75rem 1rem">
-        <div style="font-size:0.72rem;font-weight:700;color:#f59e0b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:0.4rem">
-          🚨 Anti @all do Samuelito — ainda não apostaram (${missing.length})
-        </div>
-        <div style="font-size:0.83rem;color:var(--gray-light);line-height:1.6">
-          ${missing.map(name => `<span style="display:inline-block;background:rgba(255,255,255,0.07);border-radius:6px;padding:1px 8px;margin:2px 3px 2px 0">${name}</span>`).join('')}
-        </div>
-      </div>`
-    : '';
-
-  return betsHtml + antiAllHtml;
+  return betsHtml;
 }
 
 function renderTP(matches) {
