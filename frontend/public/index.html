@@ -89,6 +89,14 @@
 
     <!-- JOGOS -->
     <div id="page-jogos" class="page active">
+
+      <!-- BANNER BRUXO -->
+      <div style="border-radius:var(--radius-md);overflow:hidden;margin-bottom:1.5rem;position:relative;background:#0d1f0f;border:1px solid rgba(57,255,137,0.2)">
+          <img src="/img/bruxo.jpeg" alt="Bruxo" style="width:100%;max-height:280px;object-fit:fill;display:block" onerror="this.style.display='none'" />
+          <p style="font-family:'Bebas Neue',sans-serif;font-size:clamp(1.4rem,4vw,2.2rem);color:#39ff89;letter-spacing:2px;margin:0;text-shadow:0 0 20px rgba(57,255,137,0.5)">BRUXO FORMOU, PORRA!!</p>
+        </div>
+      </div>
+
       <div class="page-header"><h2>Próximos Jogos</h2><p>Clique em um jogo para fazer seu palpite</p></div>
       <div class="filter-bar">
         <button class="filter-btn active" data-filter="all">Todos</button>
@@ -119,7 +127,6 @@
         <select id="tp-filter"
           style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:var(--radius-sm);padding:0.6rem 0.9rem;color:var(--white);font-size:.9rem;font-family:'DM Sans',sans-serif;cursor:pointer;outline:none">
           <option value="all">Todos os jogos</option>
-          <option value="open">Apostas abertas</option>
           <option value="closed">Apostas fechadas</option>
           <option value="finished">Com resultado</option>
         </select>
@@ -184,7 +191,7 @@
   </main>
 </div>
 
-<!-- MODAL PALPITE (apostar) -->
+<!-- MODAL PALPITE -->
 <div id="bet-modal" class="modal-overlay hidden">
   <div class="modal">
     <button class="modal-close" id="modal-close">✕</button>
