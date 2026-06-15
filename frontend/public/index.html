@@ -10,7 +10,6 @@
 </head>
 <body>
 
-<!-- LOGIN -->
 <div id="auth-screen" class="screen active">
   <div class="auth-bg">
     <div class="auth-orb orb1"></div>
@@ -49,7 +48,6 @@
   </div>
 </div>
 
-<!-- APP -->
 <div id="app-screen" class="screen">
   <header class="header">
     <div class="header-inner">
@@ -63,7 +61,7 @@
       </div>
       <nav class="header-nav">
         <button class="nav-btn active" data-page="jogos">Jogos</button>
-        <button class="nav-btn" data-page="meus-palpites">Meus Palpites</button>
+      <button class="nav-btn" data-page="meus-palpites">Meus Palpites</button>
         <button class="nav-btn" data-page="ranking">Ranking</button>
         <button class="nav-btn" data-page="todos-palpites">🔍 Palpites</button>
         <a href="/grupos.html" class="nav-btn">🗂️ Grupos</a>
@@ -87,14 +85,15 @@
 
   <main class="main">
 
-    <!-- JOGOS -->
-    <div id="page-jogos" class="page active">
+        <div id="page-jogos" class="page active">
 
-      <!-- BANNER BRUXO -->
-      <div style="border-radius:var(--radius-md);overflow:hidden;margin-bottom:1.5rem;position:relative;background:#0d1f0f;border:1px solid rgba(57,255,137,0.2)">
+            <div style="border-radius:var(--radius-md);overflow:hidden;margin-bottom:1.5rem;position:relative;background:#0d1f0f;border:1px solid rgba(57,255,137,0.2)">
           <img src="/img/bruxo.jpeg" alt="Bruxo" style="width:100%;max-height:280px;object-fit:fill;display:block" onerror="this.style.display='none'" />
           <p style="font-family:'Bebas Neue',sans-serif;font-size:clamp(1.4rem,4vw,2.2rem);color:#39ff89;letter-spacing:2px;margin:0;text-shadow:0 0 20px rgba(57,255,137,0.5)">BRUXO FORMOU, PORRA!!</p>
-        </div>
+      </div>
+      
+            <div style="border-radius:var(--radius-md);overflow:hidden;margin-bottom:1.5rem;position:relative;background:#0d1f0f;border:1px solid rgba(57,255,137,0.2)">
+          <img src="/img/patrocinador.jpg" alt="Patrocinador" style="width:100%;max-height:280px;object-fit:fill;display:block" onerror="this.style.display='none'" />
       </div>
 
       <div class="page-header"><h2>Próximos Jogos</h2><p>Clique em um jogo para fazer seu palpite</p></div>
@@ -106,20 +105,17 @@
       <div id="matches-list" class="matches-grid"></div>
     </div>
 
-    <!-- MEUS PALPITES -->
-    <div id="page-meus-palpites" class="page">
+        <div id="page-meus-palpites" class="page">
       <div class="page-header"><h2>Meus Palpites</h2><div id="my-stats" class="stats-bar"></div></div>
       <div id="my-bets-list" class="matches-grid"></div>
     </div>
 
-    <!-- RANKING -->
-    <div id="page-ranking" class="page">
+        <div id="page-ranking" class="page">
       <div class="page-header"><h2>🏆 Ranking Geral</h2><p>Pontuação ao vivo</p></div>
       <div id="ranking-list" class="ranking-container"></div>
     </div>
 
-    <!-- TODOS OS PALPITES -->
-    <div id="page-todos-palpites" class="page">
+        <div id="page-todos-palpites" class="page">
       <div class="page-header"><h2>🔍 Todos os Palpites</h2><p>Clique num jogo para ver o palpite de cada participante</p></div>
       <div class="filter-bar" style="gap:0.5rem;flex-wrap:wrap">
         <input type="text" id="tp-search" placeholder="🔍 Buscar time ou participante…"
@@ -134,8 +130,7 @@
       <div id="tp-list" class="matches-grid" style="margin-top:1rem"></div>
     </div>
 
-    <!-- ADMIN -->
-    <div id="page-admin" class="page">
+        <div id="page-admin" class="page">
       <div class="page-header"><h2>⚙️ Painel Admin</h2><p>Gerencie jogos e resultados</p></div>
       <div class="admin-grid">
         <div class="admin-card">
@@ -191,7 +186,6 @@
   </main>
 </div>
 
-<!-- MODAL PALPITE -->
 <div id="bet-modal" class="modal-overlay hidden">
   <div class="modal">
     <button class="modal-close" id="modal-close">✕</button>
