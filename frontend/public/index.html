@@ -7,13 +7,6 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/css/style.css" />
-  <style>
-    #sidebar-ad, #sidebar-ad-left { display: flex !important; }
-    #sidebar-ad, #sidebar-ad-left { width: 40px; }
-    @media (min-width: 960px) {
-      #sidebar-ad, #sidebar-ad-left { width: 200px; }
-    }
-  </style>
 </head>
 <body>
 
@@ -92,17 +85,7 @@
     <button class="mnav-btn admin-btn hidden" data-page="admin">⚙️<span>Admin</span></button>
   </nav>
 
-  <div style="display:flex;gap:1.5rem;align-items:flex-start;max-width:1600px;margin:0 auto;padding:0 1rem">
-
-  <!-- SIDEBAR ESQUERDA — PATROCINADOR 3 -->
-  <aside id="sidebar-ad-left" style="flex-shrink:0;flex-direction:column;align-self:stretch">
-    <div style="position:sticky;top:80px;height:calc(100vh - 100px);border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,0.07)">
-      <div style="font-size:0.6rem;color:var(--gray-mid);text-transform:uppercase;letter-spacing:1px;padding:0.3rem;text-align:center;background:rgba(0,0,0,0.4)">Patrocinado</div>
-      <img src="/img/patrocinador3.png" alt="Patrocinador 3" style="width:100%;height:calc(100% - 42px);object-fit:fill;display:block" onerror="this.style.display='none'" />
-      <div style="font-size:0.65rem;color:var(--gray-mid);padding:0.3rem;text-align:center;background:rgba(0,0,0,0.4)">Aposte com responsabilidade 🤡</div>
-    </div>
-  </aside>
-  <main class="main" style="flex:1;min-width:0">
+  <main class="main">
 
     <!-- JOGOS -->
     <div id="page-jogos" class="page active">
@@ -111,7 +94,7 @@
       <div style="border-radius:var(--radius-md);overflow:hidden;margin-bottom:1.5rem;position:relative;background:#0d1f0f;border:1px solid rgba(57,255,137,0.2)">
         <img src="/img/bruxo.jpeg" alt="Bruxo" style="width:100%;max-height:280px;object-fit:fill;display:block" onerror="this.style.display='none'" />
         <div style="position:absolute;bottom:0;left:0;right:0;padding:1rem 1.25rem;background:linear-gradient(to top,rgba(0,0,0,0.85) 0%,transparent 100%)">
-          <p style="font-family:'Bebas Neue',sans-serif;font-size:clamp(1.4rem,4vw,2.2rem);color:#39ff89;letter-spacing:2px;margin:0;text-shadow:0 0 20px rgba(57,255,137,0.5)">BRUXO FORMOU, PORRA!!</p>
+          <p style="font-family:'Bebas Neue',sans-serif;font-size:clamp(1.4rem,4vw,2.2rem);color:#39ff89;letter-spacing:2px;margin:0;text-shadow:0 0 20px rgba(57,255,137,0.5)">N**GAS IN PARIS</p>
         </div>
       </div>
 
@@ -124,8 +107,8 @@
 
       <div class="page-header"><h2>Próximos Jogos</h2><p>Clique em um jogo para fazer seu palpite</p></div>
       <div class="filter-bar">
-        <button class="filter-btn active" data-filter="all">Todos</button>
-        <button class="filter-btn" data-filter="open">Apostas abertas</button>
+        <button class="filter-btn" data-filter="all">Todos</button>
+        <button class="filter-btn active" data-filter="open">Apostas abertas</button>
         <button class="filter-btn" data-filter="finished">Finalizados</button>
       </div>
       <div id="matches-list" class="matches-grid"></div>
@@ -214,17 +197,6 @@
     </div>
 
   </main>
-
-  <!-- SIDEBAR PATROCINADOR 2 -->
-  <aside id="sidebar-ad" style="flex-shrink:0;flex-direction:column;align-self:stretch">
-    <div style="position:sticky;top:80px;height:calc(100vh - 100px);border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,0.07)">
-      <div style="font-size:0.6rem;color:var(--gray-mid);text-transform:uppercase;letter-spacing:1px;padding:0.3rem;text-align:center;background:rgba(0,0,0,0.4)">Patrocinado</div>
-      <img src="/img/patrocinador2.jpg" alt="Patrocinador 2" style="width:100%;height:calc(100% - 42px);object-fit:fill;display:block" onerror="this.style.display='none'" />
-      <div style="font-size:0.65rem;color:var(--gray-mid);padding:0.3rem;text-align:center;background:rgba(0,0,0,0.4)">Aposte com responsabilidade 🤡</div>
-    </div>
-  </aside>
-
-  </div>
 </div>
 
 <!-- MODAL PALPITE -->
