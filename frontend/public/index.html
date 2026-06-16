@@ -10,6 +10,7 @@
   <style>
     @media (min-width: 960px) {
       #sidebar-ad { display: flex !important; }
+      #sidebar-ad-left { display: flex !important; }
     }
   </style>
 </head>
@@ -90,7 +91,16 @@
     <button class="mnav-btn admin-btn hidden" data-page="admin">⚙️<span>Admin</span></button>
   </nav>
 
-  <div style="display:flex;gap:1.5rem;align-items:flex-start;max-width:1400px;margin:0 auto;padding:0 1rem">
+  <div style="display:flex;gap:1.5rem;align-items:flex-start;max-width:1600px;margin:0 auto;padding:0 1rem">
+
+  <!-- SIDEBAR ESQUERDA — PATROCINADOR 3 -->
+  <aside id="sidebar-ad-left" style="width:200px;flex-shrink:0;display:none;flex-direction:column;align-self:stretch">
+    <div style="position:sticky;top:80px;height:calc(100vh - 100px);border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,0.07)">
+      <div style="font-size:0.6rem;color:var(--gray-mid);text-transform:uppercase;letter-spacing:1px;padding:0.3rem;text-align:center;background:rgba(0,0,0,0.4)">Patrocinado</div>
+      <img src="/img/patrocinador3.png" alt="Patrocinador 3" style="width:100%;height:calc(100% - 42px);object-fit:fill;display:block" onerror="this.style.display='none'" />
+      <div style="font-size:0.65rem;color:var(--gray-mid);padding:0.3rem;text-align:center;background:rgba(0,0,0,0.4)">Aposte com responsabilidade 🤡</div>
+    </div>
+  </aside>
   <main class="main" style="flex:1;min-width:0">
 
     <!-- JOGOS -->
