@@ -22,24 +22,15 @@ router.get('/', auth, async (req, res) => {
         COUNT(b.id) FILTER (WHERE b.points_earned = 0 AND b.is_scored = true) AS misses,
         COUNT(b.id) FILTER (WHERE b.is_scored = true) AS scored_bets,
         
-        -- jAIscore PRO ALGORITHM (0.0 a 10.0)
+        -- jAIscore CALIBRADO (Mundo Real - Foco em Consistência e Ritmo)
         ROUND(
           CASE 
             WHEN COUNT(b.id) FILTER (WHERE b.is_scored = true) > 0 THEN
-              GREATEST(
-                0.0,
-                LEAST(
-                  10.0,
-                  (
-                    -- 1. Fator Consistência: Média amortecida (Evita 10.0 com 1 palpite sortudo)
-                    ((COALESCE(SUM(b.points_earned), 0) + 25.0) / (COUNT(b.id) FILTER (WHERE b.is_scored = true) + 5.0))
-                    
-                    -- 2. Bônus Craque: % de exatos aumenta a nota (Máx +1.5)
-                    + ((COUNT(b.id) FILTER (WHERE b.points_earned = 10)::NUMERIC / COUNT(b.id) FILTER (WHERE b.is_scored = true)) * 1.5)
-                    
-                    -- 3. Fator Bagre: % de erros totais deduz a nota (Máx -1.0)
-                    - ((COUNT(b.id) FILTER (WHERE b.points_earned = 0 AND b.is_scored = true)::NUMERIC / COUNT(b.id) FILTER (WHERE b.is_scored = true)) * 1.0)
-                  )
+              LEAST(
+                10.0,
+                (
+                  -- Média amortecida com base realista + multiplicador justo para futebol
+                  ((COALESCE(SUM(b.points_earned), 0) + 28.0) / (COUNT(b.id) FILTER (WHERE b.is_scored = true) + 8.0)) * 1.85
                 )
               )
             ELSE 0.0 
@@ -79,16 +70,9 @@ router.get('/me', auth, async (req, res) => {
           ROUND(
             CASE 
               WHEN COUNT(b.id) FILTER (WHERE b.is_scored = true) > 0 THEN
-                GREATEST(
-                  0.0,
-                  LEAST(
-                    10.0,
-                    (
-                      ((COALESCE(SUM(b.points_earned), 0) + 25.0) / (COUNT(b.id) FILTER (WHERE b.is_scored = true) + 5.0))
-                      + ((COUNT(b.id) FILTER (WHERE b.points_earned = 10)::NUMERIC / COUNT(b.id) FILTER (WHERE b.is_scored = true)) * 1.5)
-                      - ((COUNT(b.id) FILTER (WHERE b.points_earned = 0 AND b.is_scored = true)::NUMERIC / COUNT(b.id) FILTER (WHERE b.is_scored = true)) * 1.0)
-                    )
-                  )
+                LEAST(
+                  10.0,
+                  (((COALESCE(SUM(b.points_earned), 0) + 28.0) / (COUNT(b.id) FILTER (WHERE b.is_scored = true) + 8.0)) * 1.85)
                 )
               ELSE 0.0 
             END, 1
