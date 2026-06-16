@@ -8,9 +8,10 @@
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/css/style.css" />
   <style>
+    #sidebar-ad, #sidebar-ad-left { display: flex !important; }
+    #sidebar-ad, #sidebar-ad-left { width: 40px; }
     @media (min-width: 960px) {
-      #sidebar-ad { display: flex !important; }
-      #sidebar-ad-left { display: flex !important; }
+      #sidebar-ad, #sidebar-ad-left { width: 200px; }
     }
   </style>
 </head>
@@ -94,7 +95,7 @@
   <div style="display:flex;gap:1.5rem;align-items:flex-start;max-width:1600px;margin:0 auto;padding:0 1rem">
 
   <!-- SIDEBAR ESQUERDA — PATROCINADOR 3 -->
-  <aside id="sidebar-ad-left" style="width:200px;flex-shrink:0;display:none;flex-direction:column;align-self:stretch">
+  <aside id="sidebar-ad-left" style="flex-shrink:0;flex-direction:column;align-self:stretch">
     <div style="position:sticky;top:80px;height:calc(100vh - 100px);border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,0.07)">
       <div style="font-size:0.6rem;color:var(--gray-mid);text-transform:uppercase;letter-spacing:1px;padding:0.3rem;text-align:center;background:rgba(0,0,0,0.4)">Patrocinado</div>
       <img src="/img/patrocinador3.png" alt="Patrocinador 3" style="width:100%;height:calc(100% - 42px);object-fit:fill;display:block" onerror="this.style.display='none'" />
@@ -215,7 +216,7 @@
   </main>
 
   <!-- SIDEBAR PATROCINADOR 2 -->
-  <aside id="sidebar-ad" style="width:200px;flex-shrink:0;display:none;flex-direction:column;align-self:stretch">
+  <aside id="sidebar-ad" style="flex-shrink:0;flex-direction:column;align-self:stretch">
     <div style="position:sticky;top:80px;height:calc(100vh - 100px);border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,0.07)">
       <div style="font-size:0.6rem;color:var(--gray-mid);text-transform:uppercase;letter-spacing:1px;padding:0.3rem;text-align:center;background:rgba(0,0,0,0.4)">Patrocinado</div>
       <img src="/img/patrocinador2.jpg" alt="Patrocinador 2" style="width:100%;height:calc(100% - 42px);object-fit:fill;display:block" onerror="this.style.display='none'" />

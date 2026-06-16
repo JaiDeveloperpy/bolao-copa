@@ -10,7 +10,7 @@ const API =
 let currentUser  = null;
 let currentMatch = null;
 let allMatches   = [];
-let activeFilter = 'all';
+let activeFilter = 'open';
 let tpAllMatches = [];
 
 /* =============================================
