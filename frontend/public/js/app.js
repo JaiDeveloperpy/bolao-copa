@@ -139,13 +139,11 @@ async function loadMatches() {
   const list = $('matches-list');
   list.innerHTML = `<div class="loading"><div class="spinner"></div> Carregando jogos...</div>`;
   try {
-    // Busca jogos e palpites em paralelo
     const [matches, betsData] = await Promise.all([
       api('/matches'),
       api('/bets/all-by-match')
     ]);
     allMatches = matches;
-    // Mapear missing por match_id para usar nos cards
     const missingMap = {};
     for (const m of (betsData.matches || [])) {
       missingMap[m.id] = m.missing || [];
@@ -337,13 +335,22 @@ async function loadRanking() {
       const isMe = currentUser && String(rowUserId) === String(currentUser.id);
       const medal = pos === 1 ? '🥇' : pos === 2 ? '🥈' : pos === 3 ? '🥉' : pos;
       const initials = r.name.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase();
+
+      // CORES DO jAIscore (Estilo SofaScore)
+      const score = parseFloat(r.jaiscore) || 0.0;
+      let scoreBg = '#4b5563'; // Cinza por padrão (Sem palpites validados)
+      if (score >= 8.0) scoreBg = '#006e38';      // Verde Escuro (Craque)
+      else if (score >= 6.8) scoreBg = '#22c55e'; // Verde Claro (Bom)
+      else if (score >= 5.0) scoreBg = '#eab308'; // Amarelo/Laranja (Regular)
+      else if (score > 0) scoreBg = '#ef4444';    // Vermelho (Bagre)
+
       return `
       <div class="ranking-row ${posClass} ${isMe ? 'me' : ''}">
         <div class="rank-pos">${medal}</div>
         <div class="rank-avatar">${r.avatar_url ? `<img src="${r.avatar_url}" style="width:100%;height:100%;border-radius:50%;object-fit:cover"/>` : initials}</div>
         <div class="rank-info">
           <div class="rank-name">
-            <span class="rank-name-link" data-user-id="${rowUserId}" data-user-name="${r.name}" style="cursor:pointer;text-decoration:underline;text-decoration-color:rgba(255,255,255,0.2);text-underline-offset:3px">${r.name}</span>
+            <span class="rank-name-link" data-user-id="${rowUserId}" data-user-name="${r.name}" data-jaiscore="${score}" style="cursor:pointer;text-decoration:underline;text-decoration-color:rgba(255,255,255,0.2);text-underline-offset:3px">${r.name}</span>
             ${isMe ? ' <span style="color:var(--gold);font-size:0.75rem">(você)</span>' : ''}
             ${r.is_admin ? ' <span style="color:var(--green-neon);font-size:0.72rem;background:rgba(57,255,137,0.1);padding:1px 7px;border-radius:8px;margin-left:4px">⚙️ Admin</span>' : ''}
           </div>
@@ -354,6 +361,14 @@ async function loadRanking() {
             <div class="rank-detail">❌ Erros: <span>${r.misses}</span></div>
           </div>
         </div>
+        
+        <div class="rank-jaiscore" style="display:flex;flex-direction:column;align-items:center;justify-content:center;margin-right:15px;gap:2px;flex-shrink:0">
+          <span style="font-size:0.58rem;color:var(--gray-mid);text-transform:uppercase;font-weight:700;letter-spacing:0.5px">jAIscore</span>
+          <div style="background:${scoreBg};color:#white;font-family:'DM Sans',sans-serif;font-weight:700;font-size:0.85rem;padding:3px 7px;border-radius:6px;min-width:34px;text-align:center;box-shadow:0 2px 4px rgba(0,0,0,0.15)">
+            ${score.toFixed(1)}
+          </div>
+        </div>
+
         <div class="rank-pts">${r.total_points}<small>pontos</small></div>
       </div>`;
     }).join('');
@@ -364,7 +379,7 @@ async function loadRanking() {
   // Clique no nome do ranking → ver palpites da pessoa
   list.querySelectorAll('.rank-name-link').forEach(el => {
     el.addEventListener('click', () => {
-      openUserBetsModal(el.dataset.userId, el.dataset.userName);
+      openUserBetsModal(el.dataset.userId, el.dataset.userName, el.dataset.jaiscore);
     });
   });
 }
@@ -372,7 +387,7 @@ async function loadRanking() {
 /* =============================================
    MODAL PALPITES DE UM USUÁRIO (via ranking)
 ============================================= */
-async function openUserBetsModal(userId, userName) {
+async function openUserBetsModal(userId, userName, jaiscore) {
   // Cria modal dinamicamente se não existir
   let modal = $('user-bets-modal');
   if (!modal) {
@@ -395,13 +410,27 @@ async function openUserBetsModal(userId, userName) {
     modal.addEventListener('click', e => { if (e.target === modal) modal.classList.add('hidden'); });
   }
 
-  $('ubm-title').textContent = `Palpites de ${userName}`;
+  // Cor Dinâmica do jAIscore dentro do Modal
+  const score = parseFloat(jaiscore) || 0.0;
+  let scoreBg = '#4b5563';
+  if (score >= 8.0) scoreBg = '#006e38';
+  else if (score >= 6.8) scoreBg = '#22c55e';
+  else if (score >= 5.0) scoreBg = '#eab308';
+  else if (score > 0) scoreBg = '#ef4444';
+
+  $('ubm-title').innerHTML = `
+    <div style="display:flex;align-items:center;gap:8px">
+      <span>Palpites de ${userName}</span>
+      <div style="background:${scoreBg};color:#fff;font-family:'DM Sans',sans-serif;font-weight:700;font-size:0.75rem;padding:2px 6px;border-radius:5px" title="jAIscore do usuário">
+        ${score.toFixed(1)}
+      </div>
+    </div>
+  `;
   $('ubm-stats').textContent = 'Carregando...';
   $('ubm-body').innerHTML = `<div class="loading"><div class="spinner"></div></div>`;
   modal.classList.remove('hidden');
 
   try {
-    // Busca todos os palpites e filtra pelo userId + só jogos fechados
     const data = await api('/bets/all-by-match');
     const matches = (data.matches || []).filter(m => m.betting_closed || m.is_finished);
 
@@ -453,15 +482,12 @@ async function openUserBetsModal(userId, userName) {
 
 /* =============================================
    TODOS OS PALPITES
-   Expand inline — clica no cabeçalho do card
-   para mostrar/esconder a tabela de palpites.
 ============================================= */
 async function loadTodosPalpites() {
   const list = $('tp-list');
   list.innerHTML = `<div class="loading"><div class="spinner"></div> Carregando palpites...</div>`;
   try {
     const data = await api('/bets/all-by-match');
-    // Só mostrar jogos com apostas fechadas ou finalizados
     tpAllMatches = (data.matches || []).filter(m => m.betting_closed || m.is_finished);
     renderTP(tpAllMatches);
   } catch (err) {
