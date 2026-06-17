@@ -11,7 +11,25 @@ let currentUser  = null;
 let currentMatch = null;
 let allMatches   = [];
 let activeFilter = 'open';
-let tpAllMatches = [];
+let activeRound   = 'all'; // rodada ativa na aba jogos
+let tpAllMatches  = [];
+let tpActiveRound = 'all'; // rodada ativa na aba palpites
+
+// Rodadas da fase de grupos por intervalo de datas (UTC-friendly)
+const ROUNDS = [
+  { id: '1', label: 'Rodada 1', start: '2026-06-11', end: '2026-06-17' },
+  { id: '2', label: 'Rodada 2', start: '2026-06-18', end: '2026-06-23' },
+  { id: '3', label: 'Rodada 3', start: '2026-06-24', end: '2026-06-27' },
+];
+
+function getRound(match) {
+  if (match.phase !== 'group') return null;
+  const d = match.match_date.slice(0, 10); // YYYY-MM-DD
+  for (const r of ROUNDS) {
+    if (d >= r.start && d <= r.end) return r.id;
+  }
+  return null;
+}
 
 /* =============================================
    UTILS
@@ -158,8 +176,15 @@ async function loadMatches() {
 function renderMatches() {
   const list = $('matches-list');
   let filtered = allMatches;
-  if (activeFilter === 'open')     filtered = allMatches.filter(m => betStatus(m).cls === 'status-open');
+  if (activeFilter === 'open')          filtered = allMatches.filter(m => betStatus(m).cls === 'status-open');
   else if (activeFilter === 'finished') filtered = allMatches.filter(m => m.is_finished);
+  if (activeRound !== 'all') {
+    if (activeRound === 'knockout') {
+      filtered = filtered.filter(m => m.phase !== 'group');
+    } else {
+      filtered = filtered.filter(m => getRound(m) === activeRound);
+    }
+  }
 
   if (!filtered.length) {
     list.innerHTML = `<div class="empty-state"><div class="empty-icon">⚽</div><p>Nenhum jogo encontrado.</p></div>`;
@@ -222,6 +247,24 @@ document.querySelectorAll('.filter-btn').forEach(btn => {
     activeFilter = btn.dataset.filter;
     renderMatches();
   });
+});
+
+// Listener rodadas aba jogos
+document.addEventListener('click', e => {
+  const btn = e.target.closest('.round-btn');
+  if (!btn) return;
+  const group = btn.dataset.group;
+  if (group === 'jogos') {
+    document.querySelectorAll('.round-btn[data-group="jogos"]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    activeRound = btn.dataset.round;
+    renderMatches();
+  } else if (group === 'palpites') {
+    document.querySelectorAll('.round-btn[data-group="palpites"]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    tpActiveRound = btn.dataset.round;
+    applyTPFilters();
+  }
 });
 
 /* =============================================
@@ -595,7 +638,7 @@ function renderTP(matches) {
 function applyTPFilters() {
   const q = $('tp-search').value.toLowerCase().trim();
   const f = $('tp-filter').value;
-  const filtered = tpAllMatches.filter(m => {
+  let filtered = tpAllMatches.filter(m => {
     if (f === 'closed'   && m.is_finished)   return false;
     if (f === 'finished' && !m.is_finished)  return false;
     if (!q) return true;
@@ -603,6 +646,13 @@ function applyTPFilters() {
            m.away_team.toLowerCase().includes(q) ||
            m.bets.some(b => b.user_name?.toLowerCase().includes(q));
   });
+  if (tpActiveRound !== 'all') {
+    if (tpActiveRound === 'knockout') {
+      filtered = filtered.filter(m => m.phase !== 'group');
+    } else {
+      filtered = filtered.filter(m => getRound(m) === tpActiveRound);
+    }
+  }
   renderTP(filtered);
 }
 

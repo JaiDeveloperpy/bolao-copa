@@ -7,6 +7,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/css/style.css" />
+<style>
+  .round-btn.active { background: rgba(57,255,137,0.15) !important; color: #39ff89 !important; border-color: rgba(57,255,137,0.4) !important; font-weight:600; }
+  .round-btn:hover:not(.active) { background: rgba(255,255,255,0.05) !important; }
+</style>
 </head>
 <body>
 
@@ -111,6 +115,15 @@
         <button class="filter-btn active" data-filter="open">Apostas abertas</button>
         <button class="filter-btn" data-filter="finished">Finalizados</button>
       </div>
+
+      <!-- SELETOR DE RODADAS -->
+      <div class="filter-bar" style="margin-top:0.5rem;flex-wrap:wrap;gap:0.4rem">
+        <button class="round-btn active" data-group="jogos" data-round="all" style="font-size:0.78rem;padding:0.3rem 0.8rem;border-radius:20px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.08);color:var(--white);cursor:pointer">Todos</button>
+        <button class="round-btn" data-group="jogos" data-round="1" style="font-size:0.78rem;padding:0.3rem 0.8rem;border-radius:20px;border:1px solid rgba(255,255,255,0.15);background:transparent;color:var(--gray-light);cursor:pointer">Rodada 1</button>
+        <button class="round-btn" data-group="jogos" data-round="2" style="font-size:0.78rem;padding:0.3rem 0.8rem;border-radius:20px;border:1px solid rgba(255,255,255,0.15);background:transparent;color:var(--gray-light);cursor:pointer">Rodada 2</button>
+        <button class="round-btn" data-group="jogos" data-round="3" style="font-size:0.78rem;padding:0.3rem 0.8rem;border-radius:20px;border:1px solid rgba(255,255,255,0.15);background:transparent;color:var(--gray-light);cursor:pointer">Rodada 3</button>
+        <button class="round-btn" data-group="jogos" data-round="knockout" style="font-size:0.78rem;padding:0.3rem 0.8rem;border-radius:20px;border:1px solid rgba(255,255,255,0.15);background:transparent;color:var(--gray-light);cursor:pointer">Mata-mata</button>
+      </div>
       <div id="matches-list" class="matches-grid"></div>
     </div>
 
@@ -139,7 +152,16 @@
           <option value="finished">Com resultado</option>
         </select>
       </div>
-      <div id="tp-list" class="matches-grid" style="margin-top:1rem"></div>
+
+      <!-- SELETOR DE RODADAS PALPITES -->
+      <div class="filter-bar" style="margin-top:0.5rem;flex-wrap:wrap;gap:0.4rem">
+        <button class="round-btn active" data-group="palpites" data-round="all" style="font-size:0.78rem;padding:0.3rem 0.8rem;border-radius:20px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.08);color:var(--white);cursor:pointer">Todos</button>
+        <button class="round-btn" data-group="palpites" data-round="1" style="font-size:0.78rem;padding:0.3rem 0.8rem;border-radius:20px;border:1px solid rgba(255,255,255,0.15);background:transparent;color:var(--gray-light);cursor:pointer">Rodada 1</button>
+        <button class="round-btn" data-group="palpites" data-round="2" style="font-size:0.78rem;padding:0.3rem 0.8rem;border-radius:20px;border:1px solid rgba(255,255,255,0.15);background:transparent;color:var(--gray-light);cursor:pointer">Rodada 2</button>
+        <button class="round-btn" data-group="palpites" data-round="3" style="font-size:0.78rem;padding:0.3rem 0.8rem;border-radius:20px;border:1px solid rgba(255,255,255,0.15);background:transparent;color:var(--gray-light);cursor:pointer">Rodada 3</button>
+        <button class="round-btn" data-group="palpites" data-round="knockout" style="font-size:0.78rem;padding:0.3rem 0.8rem;border-radius:20px;border:1px solid rgba(255,255,255,0.15);background:transparent;color:var(--gray-light);cursor:pointer">Mata-mata</button>
+      </div>
+      <div id="tp-list" class="matches-grid" style="margin-top:0.5rem"></div>
     </div>
 
     <!-- ADMIN -->
