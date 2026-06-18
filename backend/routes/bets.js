@@ -11,12 +11,12 @@ router.get('/my', auth, async (req, res) => {
           b.*,
           m.match_date, m.phase, m.is_finished,
           ht.name AS home_team_name, ht.code AS home_team_code, ht.flag_emoji AS home_flag,
-          at.name AS away_team_name, at.code AS away_team_code, at.flag_emoji AS away_flag,
+          awt.name AS away_team_name, awt.code AS away_team_code, awt.flag_emoji AS away_flag,
           m.home_score AS real_home, m.away_score AS real_away
        FROM bets b
        JOIN matches m ON m.id = b.match_id
        JOIN teams ht ON ht.id = m.home_team_id
-       JOIN teams at ON at.id = m.away_team_id
+       JOIN teams awt ON awt.id = m.away_team_id
        WHERE b.user_id = $1
        ORDER BY m.match_date ASC`,
       [req.user.id]
