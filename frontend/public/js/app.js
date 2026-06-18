@@ -31,6 +31,41 @@ function getRound(match) {
   return null;
 }
 
+
+/* =============================================
+   FLAGS — CDN (sem dependência de emoji)
+============================================= */
+const FLAG_ISO = {
+  BRA:'br', ARG:'ar', FRA:'fr', ENG:'gb-eng', ESP:'es', POR:'pt',
+  GER:'de', NED:'nl', BEL:'be', ITA:'it', CRO:'hr', URU:'uy',
+  COL:'co', ECU:'ec', CHI:'cl', PAR:'py', BOL:'bo', VEN:'ve',
+  MEX:'mx', USA:'us', CAN:'ca', JAM:'jm', PAN:'pa', CRC:'cr',
+  JPN:'jp', KOR:'kr', AUS:'au', IRN:'ir', IRQ:'iq', NOR:'no',
+  SEN:'sn', MAR:'ma', EGY:'eg', CIV:'ci', GHA:'gh', CMR:'cm',
+  NGA:'ng', RSA:'za', ALG:'dz', TUN:'tn', CPV:'cv', NZL:'nz',
+  SCO:'gb-sct', QAT:'qa', SUI:'ch', AUT:'at', SRB:'rs', DEN:'dk',
+  POL:'pl', TUR:'tr', SWE:'se', CZE:'cz', BIH:'ba', HAI:'ht',
+  KSA:'sa', JOR:'jo', UZB:'uz', COD:'cd', CUW:'cw', SWE:'se',
+  HUN:'hu', UKR:'ua', RUS:'ru', MLI:'ml',
+};
+
+function flagImg(code, size=32) {
+  if (!code) return `<img src="https://flagcdn.com/w${size}/un.png" width="${size}" height="${Math.round(size*0.67)}" style="border-radius:3px;object-fit:cover" alt="">`;
+  // Tenta pelo código do time (3 letras) → ISO 2 letras
+  const iso = FLAG_ISO[code.toUpperCase()] || code.slice(0,2).toLowerCase();
+  return `<img src="https://flagcdn.com/w${size}/${iso}.png" width="${size}" height="${Math.round(size*0.67)}" style="border-radius:3px;object-fit:cover" onerror="this.src='https://flagcdn.com/w${size}/un.png'" alt="${code}">`;
+}
+
+// Extrai código do time a partir da flag_emoji ou do nome do time no match
+function getCodeFromMatch(teamName) {
+  // Tenta achar nos times carregados
+  if (window._teamsCache) {
+    const t = window._teamsCache.find(x => x.name === teamName || x.code === teamName);
+    if (t) return t.code;
+  }
+  return teamName;
+}
+
 /* =============================================
    UTILS
 ============================================= */
@@ -225,9 +260,9 @@ function matchCard(m) {
       </div>
     </div>
     <div class="card-teams">
-      <div class="card-team"><span class="flag">${m.home_flag||'🏳️'}</span><span class="tname">${m.home_team_name}</span></div>
+      <div class="card-team"><span class="flag">${flagImg(m.home_team_code, 40)}</span><span class="tname">${m.home_team_name}</span></div>
       <div class="card-vs">${scoreEl}</div>
-      <div class="card-team"><span class="flag">${m.away_flag||'🏳️'}</span><span class="tname">${m.away_team_name}</span></div>
+      <div class="card-team"><span class="flag">${flagImg(m.away_team_code, 40)}</span><span class="tname">${m.away_team_name}</span></div>
     </div>
     ${betEl || m.city ? `<div class="card-bottom">${betEl}${m.city ? `<span style="font-size:0.75rem;color:var(--gray-mid)">📍 ${m.city}</span>` : ''}</div>` : ''}
     ${!m.is_finished && !m.betting_closed && m.missing && m.missing.length > 0 ? `
@@ -274,9 +309,9 @@ function openBetModal(match) {
   currentMatch = match;
   $('modal-phase').textContent = phaseLabel(match.phase) + (match.group_name ? ` · Grupo ${match.group_name}` : '');
   $('modal-date').textContent = `${formatDate(match.match_date)}${match.stadium ? ' · ' + match.stadium : ''}${match.city ? ` (${match.city})` : ''}`;
-  $('modal-home-flag').textContent = match.home_flag || '🏳️';
+  $('modal-home-flag').innerHTML = flagImg(match.home_team_code, 56);
   $('modal-home-name').textContent = match.home_team_name;
-  $('modal-away-flag').textContent = match.away_flag || '🏳️';
+  $('modal-away-flag').innerHTML = flagImg(match.away_team_code, 56);
   $('modal-away-name').textContent = match.away_team_name;
   $('bet-home').value = match.home_score_bet ?? 0;
   $('bet-away').value = match.away_score_bet ?? 0;
@@ -331,13 +366,13 @@ async function loadMyBets() {
           <span class="card-date">${formatDate(b.match_date)}</span>
         </div>
         <div class="card-teams">
-          <div class="card-team"><span class="flag">${b.home_flag||'🏳️'}</span><span class="tname">${b.home_team_name}</span></div>
+          <div class="card-team"><span class="flag">${flagImg(b.home_team_code, 40)}</span><span class="tname">${b.home_team_name}</span></div>
           <div class="card-vs">
             ${b.is_finished
               ? `<div style="text-align:center"><span class="real-score">${b.real_home} – ${b.real_away}</span><div style="font-size:0.7rem;color:var(--gray-light)">resultado</div></div>`
               : `<span class="vs-text">VS</span>`}
           </div>
-          <div class="card-team"><span class="flag">${b.away_flag||'🏳️'}</span><span class="tname">${b.away_team_name}</span></div>
+          <div class="card-team"><span class="flag">${flagImg(b.away_team_code, 40)}</span><span class="tname">${b.away_team_name}</span></div>
         </div>
         <div class="card-bottom">
           <div class="bet-preview">Seu palpite: <strong>${b.home_score_bet} – ${b.away_score_bet}</strong></div>
@@ -605,11 +640,11 @@ function renderTP(matches) {
         </div>
         <div style="display:flex;align-items:center;justify-content:space-between;gap:0.5rem">
           <div style="display:flex;align-items:center;gap:0.4rem;font-weight:600;font-size:0.9rem;flex:1">
-            <span>${m.home_flag||'🏳️'}</span><span>${m.home_team}</span>
+            <span>${flagImg(m.home_team_code, 24)}</span><span>${m.home_team}</span>
           </div>
           <span style="font-family:'Bebas Neue',sans-serif;font-size:1.2rem;color:${hasResult?'var(--gold)':'var(--gray-light)'};letter-spacing:2px;background:rgba(0,0,0,0.2);padding:2px 10px;border-radius:6px;flex-shrink:0">${scoreText}</span>
           <div style="display:flex;align-items:center;gap:0.4rem;font-weight:600;font-size:0.9rem;flex:1;justify-content:flex-end">
-            <span>${m.away_team}</span><span>${m.away_flag||'🏳️'}</span>
+            <span>${m.away_team}</span><span>${flagImg(m.away_team_code, 24)}</span>
           </div>
         </div>
         <div style="display:flex;align-items:center;justify-content:space-between;margin-top:0.5rem">
@@ -662,6 +697,7 @@ function applyTPFilters() {
 async function loadAdmin() {
   if (!currentUser?.is_admin) return;
   try {
+    window._teamsCache = await api('/teams').catch(() => []);
     const [teams, groups] = await Promise.all([api('/teams'), api('/teams/groups/all')]);
     const teamOpts = teams.map(t => `<option value="${t.id}">${t.flag_emoji||''} ${t.name} (${t.code})</option>`).join('');
     ['am-home','am-away'].forEach(id => { $(id).innerHTML = teamOpts; });
