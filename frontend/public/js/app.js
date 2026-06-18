@@ -31,29 +31,6 @@ function getRound(match) {
   return null;
 }
 
-
-/* =============================================
-   FLAGS — imagens via flagcdn.com
-   Funciona em qualquer navegador/SO
-============================================= */
-const FLAG_ISO = {
-  BRA:'br',ARG:'ar',FRA:'fr',ENG:'gb-eng',ESP:'es',POR:'pt',
-  GER:'de',NED:'nl',BEL:'be',ITA:'it',CRO:'hr',URU:'uy',
-  COL:'co',ECU:'ec',CHI:'cl',PAR:'py',BOL:'bo',VEN:'ve',
-  MEX:'mx',USA:'us',CAN:'ca',JAM:'jm',PAN:'pa',CRC:'cr',
-  JPN:'jp',KOR:'kr',AUS:'au',IRN:'ir',IRQ:'iq',NOR:'no',
-  SEN:'sn',MAR:'ma',EGY:'eg',CIV:'ci',GHA:'gh',CMR:'cm',
-  NGA:'ng',RSA:'za',ALG:'dz',TUN:'tn',CPV:'cv',NZL:'nz',
-  SCO:'gb-sct',QAT:'qa',SUI:'ch',AUT:'at',SRB:'rs',DEN:'dk',
-  POL:'pl',TUR:'tr',SWE:'se',CZE:'cz',BIH:'ba',HAI:'ht',
-  KSA:'sa',JOR:'jo',UZB:'uz',COD:'cd',CUW:'cw',HUN:'hu',MLI:'ml',
-};
-
-function flagImg(code, size=40) {
-  const iso = FLAG_ISO[code] || (code ? code.slice(0,2).toLowerCase() : 'un');
-  return `<img src="https://flagcdn.com/w${size}/${iso}.png" width="${size}" height="${Math.round(size*0.67)}" style="border-radius:3px;object-fit:cover;display:block" onerror="this.style.display='none'" alt="${code||''}">`;
-}
-
 /* =============================================
    UTILS
 ============================================= */
@@ -180,7 +157,16 @@ async function loadMatches() {
   const list = $('matches-list');
   list.innerHTML = `<div class="loading"><div class="spinner"></div> Carregando jogos...</div>`;
   try {
-    allMatches = await api('/matches');
+    const [matches, betsData] = await Promise.all([
+      api('/matches'),
+      api('/bets/all-by-match')
+    ]);
+    allMatches = matches;
+    const missingMap = {};
+    for (const m of (betsData.matches || [])) {
+      missingMap[m.id] = m.missing || [];
+    }
+    allMatches = allMatches.map(m => ({ ...m, missing: missingMap[m.id] || [] }));
     renderMatches();
   } catch (err) {
     list.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><p>${err.message}</p></div>`;
@@ -239,9 +225,9 @@ function matchCard(m) {
       </div>
     </div>
     <div class="card-teams">
-      <div class="card-team"><span class="flag">${flagImg(m.home_team_code)}</span><span class="tname">${m.home_team_name}</span></div>
+      <div class="card-team"><span class="flag">${m.home_flag||'🏳️'}</span><span class="tname">${m.home_team_name}</span></div>
       <div class="card-vs">${scoreEl}</div>
-      <div class="card-team"><span class="flag">${flagImg(m.away_team_code)}</span><span class="tname">${m.away_team_name}</span></div>
+      <div class="card-team"><span class="flag">${m.away_flag||'🏳️'}</span><span class="tname">${m.away_team_name}</span></div>
     </div>
     ${betEl || m.city ? `<div class="card-bottom">${betEl}${m.city ? `<span style="font-size:0.75rem;color:var(--gray-mid)">📍 ${m.city}</span>` : ''}</div>` : ''}
     ${!m.is_finished && !m.betting_closed && m.missing && m.missing.length > 0 ? `
@@ -288,9 +274,9 @@ function openBetModal(match) {
   currentMatch = match;
   $('modal-phase').textContent = phaseLabel(match.phase) + (match.group_name ? ` · Grupo ${match.group_name}` : '');
   $('modal-date').textContent = `${formatDate(match.match_date)}${match.stadium ? ' · ' + match.stadium : ''}${match.city ? ` (${match.city})` : ''}`;
-  $('modal-home-flag').innerHTML = flagImg(match.home_team_code, 56);
+  $('modal-home-flag').textContent = match.home_flag || '🏳️';
   $('modal-home-name').textContent = match.home_team_name;
-  $('modal-away-flag').innerHTML = flagImg(match.away_team_code, 56);
+  $('modal-away-flag').textContent = match.away_flag || '🏳️';
   $('modal-away-name').textContent = match.away_team_name;
   $('bet-home').value = match.home_score_bet ?? 0;
   $('bet-away').value = match.away_score_bet ?? 0;
@@ -345,13 +331,13 @@ async function loadMyBets() {
           <span class="card-date">${formatDate(b.match_date)}</span>
         </div>
         <div class="card-teams">
-          <div class="card-team"><span class="flag">${flagImg(b.home_team_code)}</span><span class="tname">${b.home_team_name}</span></div>
+          <div class="card-team"><span class="flag">${b.home_flag||'🏳️'}</span><span class="tname">${b.home_team_name}</span></div>
           <div class="card-vs">
             ${b.is_finished
               ? `<div style="text-align:center"><span class="real-score">${b.real_home} – ${b.real_away}</span><div style="font-size:0.7rem;color:var(--gray-light)">resultado</div></div>`
               : `<span class="vs-text">VS</span>`}
           </div>
-          <div class="card-team"><span class="flag">${flagImg(b.away_team_code)}</span><span class="tname">${b.away_team_name}</span></div>
+          <div class="card-team"><span class="flag">${b.away_flag||'🏳️'}</span><span class="tname">${b.away_team_name}</span></div>
         </div>
         <div class="card-bottom">
           <div class="bet-preview">Seu palpite: <strong>${b.home_score_bet} – ${b.away_score_bet}</strong></div>
@@ -488,7 +474,7 @@ async function openUserBetsModal(userId, userName, jaiscore) {
   modal.classList.remove('hidden');
 
   try {
-    const data = await api('/matches');
+    const data = await api('/bets/all-by-match');
     const matches = (data.matches || []).filter(m => m.betting_closed || m.is_finished);
 
     const userBets = [];
@@ -544,8 +530,8 @@ async function loadTodosPalpites() {
   const list = $('tp-list');
   list.innerHTML = `<div class="loading"><div class="spinner"></div> Carregando palpites...</div>`;
   try {
-    const data = await api('/matches');
-    tpAllMatches = Array.isArray(data) ? data : [];
+    const data = await api('/bets/all-by-match');
+    tpAllMatches = (data.matches || []).filter(m => m.betting_closed || m.is_finished);
     renderTP(tpAllMatches);
   } catch (err) {
     list.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><p>${err.message}</p></div>`;

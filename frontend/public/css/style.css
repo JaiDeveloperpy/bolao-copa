@@ -291,8 +291,7 @@ body {
 
 .card-teams { display: flex; align-items: center; gap: 0.75rem; justify-content: space-between; }
 .card-team { display: flex; flex-direction: column; align-items: center; gap: 0.35rem; flex: 1; }
-.card-team .flag { display:flex; align-items:center; justify-content:center; }
-.card-team .flag img { border-radius: 4px; box-shadow: 0 1px 4px rgba(0,0,0,0.4); }
+.card-team .flag { font-size: 2rem; }
 .card-team .tname { font-size: 0.8rem; font-weight: 600; text-align: center; color: var(--off-white); }
 
 .card-vs { flex-shrink: 0; text-align: center; }
@@ -446,8 +445,7 @@ body {
   gap: 1rem; margin-bottom: 1.5rem;
 }
 .modal-team { display: flex; flex-direction: column; align-items: center; gap: 0.4rem; flex: 1; }
-.modal-team .team-flag { display:flex; align-items:center; justify-content:center; }
-.modal-team .team-flag img { border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.4); }
+.modal-team .team-flag { font-size: 2.5rem; }
 .modal-team .team-name { font-size: 0.85rem; font-weight: 600; text-align: center; }
 
 .modal-score-inputs { display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0; }
