@@ -180,16 +180,7 @@ async function loadMatches() {
   const list = $('matches-list');
   list.innerHTML = `<div class="loading"><div class="spinner"></div> Carregando jogos...</div>`;
   try {
-    const [matches, betsData] = await Promise.all([
-      api('/matches'),
-      api('/matches')
-    ]);
-    allMatches = matches;
-    const missingMap = {};
-    for (const m of (betsData.matches || [])) {
-      missingMap[m.id] = m.missing || [];
-    }
-    allMatches = allMatches.map(m => ({ ...m, missing: missingMap[m.id] || [] }));
+    allMatches = await api('/matches');
     renderMatches();
   } catch (err) {
     list.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><p>${err.message}</p></div>`;
@@ -554,7 +545,7 @@ async function loadTodosPalpites() {
   list.innerHTML = `<div class="loading"><div class="spinner"></div> Carregando palpites...</div>`;
   try {
     const data = await api('/matches');
-    tpAllMatches = (data.matches || []).filter(m => m.betting_closed || m.is_finished);
+    tpAllMatches = Array.isArray(data) ? data : [];
     renderTP(tpAllMatches);
   } catch (err) {
     list.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><p>${err.message}</p></div>`;
