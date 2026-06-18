@@ -182,7 +182,7 @@ async function loadMatches() {
   try {
     const [matches, betsData] = await Promise.all([
       api('/matches'),
-      api('/bets/all-by-match')
+      api('/matches')
     ]);
     allMatches = matches;
     const missingMap = {};
@@ -497,7 +497,7 @@ async function openUserBetsModal(userId, userName, jaiscore) {
   modal.classList.remove('hidden');
 
   try {
-    const data = await api('/bets/all-by-match');
+    const data = await api('/matches');
     const matches = (data.matches || []).filter(m => m.betting_closed || m.is_finished);
 
     const userBets = [];
@@ -553,7 +553,7 @@ async function loadTodosPalpites() {
   const list = $('tp-list');
   list.innerHTML = `<div class="loading"><div class="spinner"></div> Carregando palpites...</div>`;
   try {
-    const data = await api('/bets/all-by-match');
+    const data = await api('/matches');
     tpAllMatches = (data.matches || []).filter(m => m.betting_closed || m.is_finished);
     renderTP(tpAllMatches);
   } catch (err) {
