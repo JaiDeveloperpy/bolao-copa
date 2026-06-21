@@ -372,15 +372,12 @@ async function loadRanking() {
   try {
     const rows = await api('/ranking');
     if (!rows.length) { list.innerHTML = `<div class="empty-state"><div class="empty-icon">🏆</div><p>Nenhum participante ainda.</p></div>`; return; }
-    const total = rows.length;
-    list.innerHTML = [...rows].reverse().map((r, i) => {
+    list.innerHTML = rows.map((r, i) => {
       const pos = i + 1;
-      const revPos = total - i; // posição invertida: último vira 1º no display
-      const posClass = revPos === 1 ? 'top1' : revPos === 2 ? 'top2' : revPos === 3 ? 'top3' : '';
+      const posClass = pos === 1 ? 'top1' : pos === 2 ? 'top2' : pos === 3 ? 'top3' : '';
       const rowUserId = r.id || r.user_id;
       const isMe = currentUser && String(rowUserId) === String(currentUser.id);
-      // Medalhas vão para os últimos (piores)
-      const medal = revPos === 1 ? '🥇' : revPos === 2 ? '🥈' : revPos === 3 ? '🥉' : pos;
+      const medal = pos === 1 ? '🥇' : pos === 2 ? '🥈' : pos === 3 ? '🥉' : pos;
       const initials = r.name.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase();
 
       // CORES DO jAIscore (Estilo SofaScore)
