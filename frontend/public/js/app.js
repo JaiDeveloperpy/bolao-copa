@@ -144,6 +144,7 @@ function navigate(page) {
   if (page === 'ranking')        loadRanking();
   if (page === 'admin')          loadAdmin();
   if (page === 'todos-palpites') loadTodosPalpites();
+  if (page === 'micos')          loadMicos();
 }
 
 document.querySelectorAll('.nav-btn, .mnav-btn').forEach(btn => {
@@ -657,6 +658,48 @@ function applyTPFilters() {
     }
   }
   renderTP(filtered);
+}
+
+/* =============================================
+   MICOS — sequência de erros
+============================================= */
+async function loadMicos() {
+  const list = $('micos-list');
+  list.innerHTML = `<div class="loading"><div class="spinner"></div> Calculando micos...</div>`;
+  try {
+    const data = await api('/bets/sequencia-erros');
+    const streaks = data.streaks || [];
+
+    if (!streaks.length) {
+      list.innerHTML = `<div class="empty-state"><div class="empty-icon">🎉</div><p>Ninguém errou nada ainda!</p></div>`;
+      return;
+    }
+
+    list.innerHTML = streaks.map((s, i) => {
+      const medal = i === 0 ? '💀' : i === 1 ? '😬' : i === 2 ? '😅' : `${i+1}º`;
+      const betsHtml = s.bets.map(b => `
+        <div style="display:flex;align-items:center;gap:0.75rem;padding:0.5rem 0;border-top:1px solid rgba(255,255,255,0.05);flex-wrap:wrap">
+          <span style="font-size:0.8rem;color:var(--gray-mid);min-width:90px">${new Date(b.match_date).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})}</span>
+          <span style="font-size:0.85rem;flex:1">${b.home_flag||'🏳️'} ${b.home_team} × ${b.away_team} ${b.away_flag||'🏳️'}</span>
+          <span style="font-size:0.75rem;color:var(--gray-mid)">Real: <strong>${b.real_home}–${b.real_away}</strong></span>
+          <span style="font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:1px;color:var(--red-light,#da3633)">Palpite: ${b.bet_home}–${b.bet_away}</span>
+        </div>`).join('');
+
+      return `
+      <div style="background:rgba(218,54,51,0.06);border:1px solid rgba(218,54,51,0.2);border-radius:10px;padding:1rem 1.25rem;margin-bottom:1rem">
+        <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.75rem">
+          <span style="font-size:1.5rem">${medal}</span>
+          <div>
+            <div style="font-weight:700;font-size:1rem">${s.user_name}</div>
+            <div style="font-size:0.78rem;color:#f87171">${s.streak} erro${s.streak>1?'s':'0'} consecutivo${s.streak>1?'s':''} 💀</div>
+          </div>
+        </div>
+        ${betsHtml}
+      </div>`;
+    }).join('');
+  } catch (err) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><p>${err.message}</p></div>`;
+  }
 }
 
 /* =============================================

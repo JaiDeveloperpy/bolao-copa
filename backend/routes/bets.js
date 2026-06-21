@@ -178,4 +178,76 @@ router.get('/match/:matchId', auth, async (req, res) => {
   }
 });
 
+
+// GET /api/bets/sequencia-erros — maior sequência de erros consecutivos por usuário
+router.get('/sequencia-erros', auth, async (req, res) => {
+  try {
+    // Busca todos os palpites pontuados, ordenados por usuário e data do jogo
+    const result = await db.query(`
+      SELECT
+        u.id::text AS user_id,
+        u.name     AS user_name,
+        b.points_earned,
+        b.home_score_bet  AS bet_home,
+        b.away_score_bet  AS bet_away,
+        m.home_score      AS real_home,
+        m.away_score      AS real_away,
+        ht.name           AS home_team,
+        ht.flag_emoji     AS home_flag,
+        at.name           AS away_team,
+        at.flag_emoji     AS away_flag,
+        m.match_date
+      FROM bets b
+      JOIN users u  ON u.id  = b.user_id
+      JOIN matches m ON m.id = b.match_id
+      JOIN teams ht  ON ht.id = m.home_team_id
+      JOIN teams at  ON at.id = m.away_team_id
+      WHERE b.is_scored = TRUE
+      ORDER BY u.id, m.match_date ASC
+    `);
+
+    // Agrupar por usuário
+    const byUser = {};
+    for (const row of result.rows) {
+      if (!byUser[row.user_id]) byUser[row.user_id] = { user_name: row.user_name, bets: [] };
+      byUser[row.user_id].bets.push(row);
+    }
+
+    // Calcular maior sequência de erros (points_earned = 0) por usuário
+    const streaks = [];
+    for (const [userId, data] of Object.entries(byUser)) {
+      let maxStreak = 0, curStreak = 0, maxBets = [], curBets = [];
+      for (const bet of data.bets) {
+        if (bet.points_earned === 0) {
+          curStreak++;
+          curBets.push(bet);
+          if (curStreak > maxStreak) {
+            maxStreak = curStreak;
+            maxBets = [...curBets];
+          }
+        } else {
+          curStreak = 0;
+          curBets = [];
+        }
+      }
+      if (maxStreak > 0) {
+        streaks.push({
+          user_id,
+          user_name:  data.user_name,
+          streak:     maxStreak,
+          bets:       maxBets,
+        });
+      }
+    }
+
+    // Ordenar por maior sequência
+    streaks.sort((a, b) => b.streak - a.streak);
+
+    res.json({ streaks });
+  } catch (err) {
+    console.error('Erro ao buscar sequência de erros:', err.message);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
 module.exports = router;
