@@ -250,4 +250,79 @@ router.get('/sequencia-erros', auth, async (req, res) => {
   }
 });
 
+
+// GET /api/bets/palpites-malucos — palpites com maior diferença do resultado real
+router.get('/palpites-malucos', auth, async (req, res) => {
+  try {
+    const result = await db.query(`
+      SELECT
+        u.name            AS user_name,
+        b.home_score_bet  AS bet_home,
+        b.away_score_bet  AS bet_away,
+        m.home_score      AS real_home,
+        m.away_score      AS real_away,
+        ht.name           AS home_team,
+        ht.flag_emoji     AS home_flag,
+        at.name           AS away_team,
+        at.flag_emoji     AS away_flag,
+        m.match_date,
+        (
+          ABS(b.home_score_bet - m.home_score) +
+          ABS(b.away_score_bet - m.away_score)
+        ) AS loucura
+      FROM bets b
+      JOIN users u   ON u.id  = b.user_id
+      JOIN matches m ON m.id  = b.match_id
+      JOIN teams ht  ON ht.id = m.home_team_id
+      JOIN teams at  ON at.id = m.away_team_id
+      WHERE b.is_scored = TRUE
+        AND m.home_score IS NOT NULL
+      ORDER BY loucura DESC, m.match_date DESC
+      LIMIT 20
+    `);
+    res.json({ palpites: result.rows });
+  } catch (err) {
+    console.error('Erro ao buscar palpites malucos:', err.message);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+
+// GET /api/bets/destaques/:userId — última cravada e último 7pts de um usuário
+router.get('/destaques/:userId', auth, async (req, res) => {
+  try {
+    const result = await db.query(`
+      SELECT
+        b.points_earned,
+        b.home_score_bet  AS bet_home,
+        b.away_score_bet  AS bet_away,
+        m.home_score      AS real_home,
+        m.away_score      AS real_away,
+        ht.name           AS home_team,
+        ht.flag_emoji     AS home_flag,
+        at.name           AS away_team,
+        at.flag_emoji     AS away_flag,
+        m.match_date
+      FROM bets b
+      JOIN matches m ON m.id  = b.match_id
+      JOIN teams ht  ON ht.id = m.home_team_id
+      JOIN teams at  ON at.id = m.away_team_id
+      WHERE b.user_id = $1::uuid
+        AND b.is_scored = TRUE
+        AND b.points_earned >= 7
+      ORDER BY m.match_date DESC
+      LIMIT 20
+    `, [req.params.userId]);
+
+    const rows = result.rows;
+    const lastExact  = rows.find(r => parseInt(r.points_earned) === 10) || null;
+    const last7      = rows.find(r => parseInt(r.points_earned) === 7)  || null;
+
+    res.json({ lastExact, last7 });
+  } catch (err) {
+    console.error('Erro ao buscar destaques:', err.message);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
 module.exports = router;

@@ -475,8 +475,11 @@ async function openUserBetsModal(userId, userName, jaiscore) {
   modal.classList.remove('hidden');
 
   try {
-    const data = await api('/bets/all-by-match');
-    const matches = (data.matches || []).filter(m => m.betting_closed || m.is_finished);
+    const [betsData, destaques] = await Promise.all([
+      api('/bets/all-by-match'),
+      api(`/bets/destaques/${userId}`).catch(() => ({ lastExact: null, last7: null }))
+    ]);
+    const matches = (betsData.matches || []).filter(m => m.betting_closed || m.is_finished);
 
     const userBets = [];
     for (const m of matches) {
@@ -484,16 +487,35 @@ async function openUserBetsModal(userId, userName, jaiscore) {
       if (bet) userBets.push({ match: m, bet });
     }
 
-    const total = userBets.reduce((s, x) => s + (x.bet.points_earned || 0), 0);
-    const exact = userBets.filter(x => x.bet.points_earned === 10).length;
+    const total = userBets.reduce((s, x) => s + (parseInt(x.bet.points_earned) || 0), 0);
+    const exact = userBets.filter(x => parseInt(x.bet.points_earned) === 10).length;
     $('ubm-stats').textContent = `${userBets.length} palpites · ${total} pontos · ${exact} placares exatos`;
 
+    // Destaques — última cravada e último 7pts
+    const fmtBet = (b, pts) => b ? `
+      <div style="display:flex;align-items:center;gap:0.5rem;background:rgba(255,255,255,0.04);border-radius:8px;padding:0.4rem 0.75rem;font-size:0.78rem">
+        <span>${pts === 10 ? '🎯' : '✅'}</span>
+        <span style="color:var(--gray-light)">${b.home_flag||'🏳️'} ${b.home_team} × ${b.away_team} ${b.away_flag||'🏳️'}</span>
+        <span style="font-family:'Bebas Neue',sans-serif;letter-spacing:1px;color:${pts===10?'var(--gold)':'var(--green-neon)'}">${b.bet_home}–${b.bet_away}</span>
+        <span style="color:var(--gray-mid)">${new Date(b.match_date).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})}</span>
+      </div>` : `<span style="font-size:0.75rem;color:var(--gray-mid)">Nenhuma ainda</span>`;
+
+    if (destaques.lastExact !== null || destaques.last7 !== null) {
+      const destaquesHtml = `
+        <div style="padding:0.75rem 1.25rem;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;flex-direction:column;gap:0.4rem">
+          <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:.5px;color:var(--gray-mid);margin-bottom:0.2rem">Últimos destaques</div>
+          <div style="display:flex;align-items:center;gap:0.5rem"><span style="font-size:0.7rem;color:var(--gray-mid);width:80px">🎯 Cravada</span>${fmtBet(destaques.lastExact, 10)}</div>
+          <div style="display:flex;align-items:center;gap:0.5rem"><span style="font-size:0.7rem;color:var(--gray-mid);width:80px">✅ 7pts</span>${fmtBet(destaques.last7, 7)}</div>
+        </div>`;
+      $('ubm-body').innerHTML = destaquesHtml;
+    }
+
     if (!userBets.length) {
-      $('ubm-body').innerHTML = `<div style="padding:2rem;text-align:center;color:var(--gray-mid)">Nenhum palpite em jogos fechados ainda.</div>`;
+      $('ubm-body').innerHTML += `<div style="padding:2rem;text-align:center;color:var(--gray-mid)">Nenhum palpite em jogos fechados ainda.</div>`;
       return;
     }
 
-    $('ubm-body').innerHTML = userBets.map(({ match: m, bet: b }) => {
+    $('ubm-body').innerHTML += userBets.map(({ match: m, bet: b }) => {
       const hasResult = m.is_finished && m.result_home !== null;
       let betColor = 'var(--off-white)';
       if (hasResult) {
@@ -658,44 +680,115 @@ function applyTPFilters() {
 }
 
 /* =============================================
-   MICOS — sequência de erros
+   MICOS — sequência de erros + palpites malucos
 ============================================= */
+let micoMode = 'sequencia'; // 'sequencia' | 'malucos'
+
 async function loadMicos() {
   const list = $('micos-list');
-  list.innerHTML = `<div class="loading"><div class="spinner"></div> Calculando micos...</div>`;
+
+  // Seletor de modo
+  const selector = `
+    <div style="display:flex;gap:0.5rem;margin-bottom:1.25rem;flex-wrap:wrap">
+      <button onclick="setMicoMode('sequencia')" id="mico-btn-sequencia"
+        style="padding:0.4rem 1rem;border-radius:20px;border:1px solid rgba(218,54,51,0.4);cursor:pointer;font-size:0.85rem;background:${micoMode==='sequencia'?'rgba(218,54,51,0.2)':'transparent'};color:${micoMode==='sequencia'?'#f87171':'var(--gray-light)'}">
+        💀 Sequência de Erros
+      </button>
+      <button onclick="setMicoMode('malucos')" id="mico-btn-malucos"
+        style="padding:0.4rem 1rem;border-radius:20px;border:1px solid rgba(218,54,51,0.4);cursor:pointer;font-size:0.85rem;background:${micoMode==='malucos'?'rgba(218,54,51,0.2)':'transparent'};color:${micoMode==='malucos'?'#f87171':'var(--gray-light)'}">
+        🤪 Palpites Malucos
+      </button>
+    </div>
+    <div id="micos-content"></div>`;
+
+  list.innerHTML = selector;
+
+  if (micoMode === 'sequencia') {
+    await renderSequencia();
+  } else {
+    await renderMalucos();
+  }
+}
+
+function setMicoMode(mode) {
+  micoMode = mode;
+  loadMicos();
+}
+
+async function renderSequencia() {
+  const content = $('micos-content');
+  content.innerHTML = `<div class="loading"><div class="spinner"></div> Calculando micos...</div>`;
   try {
     const data = await api('/bets/sequencia-erros');
     const streaks = data.streaks || [];
-
     if (!streaks.length) {
-      list.innerHTML = `<div class="empty-state"><div class="empty-icon">🎉</div><p>Ninguém errou nada ainda!</p></div>`;
+      content.innerHTML = `<div class="empty-state"><div class="empty-icon">🎉</div><p>Ninguém errou seguido ainda!</p></div>`;
       return;
     }
-
-    list.innerHTML = streaks.map((s, i) => {
+    content.innerHTML = streaks.map((s, i) => {
       const medal = i === 0 ? '💀' : i === 1 ? '😬' : i === 2 ? '😅' : `${i+1}º`;
       const betsHtml = s.bets.map(b => `
         <div style="display:flex;align-items:center;gap:0.75rem;padding:0.5rem 0;border-top:1px solid rgba(255,255,255,0.05);flex-wrap:wrap">
           <span style="font-size:0.8rem;color:var(--gray-mid);min-width:90px">${new Date(b.match_date).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})}</span>
           <span style="font-size:0.85rem;flex:1">${b.home_flag||'🏳️'} ${b.home_team} × ${b.away_team} ${b.away_flag||'🏳️'}</span>
           <span style="font-size:0.75rem;color:var(--gray-mid)">Real: <strong>${b.real_home}–${b.real_away}</strong></span>
-          <span style="font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:1px;color:var(--red-light,#da3633)">Palpite: ${b.bet_home}–${b.bet_away}</span>
+          <span style="font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:1px;color:#f87171">Palpite: ${b.bet_home}–${b.bet_away}</span>
         </div>`).join('');
-
       return `
       <div style="background:rgba(218,54,51,0.06);border:1px solid rgba(218,54,51,0.2);border-radius:10px;padding:1rem 1.25rem;margin-bottom:1rem">
         <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.75rem">
           <span style="font-size:1.5rem">${medal}</span>
           <div>
             <div style="font-weight:700;font-size:1rem">${s.user_name}</div>
-            <div style="font-size:0.78rem;color:#f87171">${s.streak} erro${s.streak>1?'s':'0'} consecutivo${s.streak>1?'s':''} 💀</div>
+            <div style="font-size:0.78rem;color:#f87171">${s.streak} erro${s.streak>1?'s':''}  consecutivo${s.streak>1?'s':''} 💀</div>
           </div>
         </div>
         ${betsHtml}
       </div>`;
     }).join('');
   } catch (err) {
-    list.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><p>${err.message}</p></div>`;
+    content.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><p>${err.message}</p></div>`;
+  }
+}
+
+async function renderMalucos() {
+  const content = $('micos-content');
+  content.innerHTML = `<div class="loading"><div class="spinner"></div> Procurando loucuras...</div>`;
+  try {
+    const data = await api('/bets/palpites-malucos');
+    const palpites = data.palpites || [];
+    if (!palpites.length) {
+      content.innerHTML = `<div class="empty-state"><div class="empty-icon">🎯</div><p>Nenhum palpite maluco ainda!</p></div>`;
+      return;
+    }
+    content.innerHTML = `
+      <div style="font-size:0.78rem;color:var(--gray-mid);margin-bottom:1rem">Ordenado pela maior diferença entre palpite e resultado real (|palpite casa - real casa| + |palpite visitante - real visitante|)</div>
+      ${palpites.map((p, i) => {
+        const loucura = parseInt(p.loucura);
+        const medal = i === 0 ? '🤪' : i === 1 ? '😱' : i === 2 ? '🙈' : `${i+1}º`;
+        return `
+        <div style="background:rgba(218,54,51,0.06);border:1px solid rgba(218,54,51,0.2);border-radius:10px;padding:0.9rem 1.25rem;margin-bottom:0.75rem;display:flex;align-items:center;gap:1rem;flex-wrap:wrap">
+          <span style="font-size:1.4rem;flex-shrink:0">${medal}</span>
+          <div style="flex:1;min-width:140px">
+            <div style="font-weight:700;font-size:0.9rem">${p.user_name}</div>
+            <div style="font-size:0.75rem;color:var(--gray-mid)">${p.home_flag||'🏳️'} ${p.home_team} × ${p.away_team} ${p.away_flag||'🏳️'} · ${new Date(p.match_date).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})}</div>
+          </div>
+          <div style="text-align:center">
+            <div style="font-size:0.65rem;color:var(--gray-mid);text-transform:uppercase">Real</div>
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:1.1rem;color:var(--green-neon)">${p.real_home}–${p.real_away}</div>
+          </div>
+          <div style="text-align:center">
+            <div style="font-size:0.65rem;color:var(--gray-mid);text-transform:uppercase">Palpite</div>
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:1.1rem;color:#f87171">${p.bet_home}–${p.bet_away}</div>
+          </div>
+          <div style="text-align:center;background:rgba(218,54,51,0.15);border-radius:8px;padding:4px 10px">
+            <div style="font-size:0.6rem;color:var(--gray-mid);text-transform:uppercase">Loucura</div>
+            <div style="font-weight:700;font-size:1rem;color:#f87171">+${loucura}</div>
+          </div>
+        </div>`;
+      }).join('')}`;
+  } catch (err) {
+    content.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><p>${err.message}</p></div>`;
   }
 }
 
