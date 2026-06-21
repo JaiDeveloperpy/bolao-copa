@@ -215,10 +215,10 @@ router.get('/sequencia-erros', auth, async (req, res) => {
 
     // Calcular maior sequência de erros (points_earned = 0) por usuário
     const streaks = [];
-    for (const [userId, data] of Object.entries(byUser)) {
+    for (const [uid, data] of Object.entries(byUser)) {
       let maxStreak = 0, curStreak = 0, maxBets = [], curBets = [];
       for (const bet of data.bets) {
-        if (bet.points_earned === 0) {
+        if (parseInt(bet.points_earned) === 0) {
           curStreak++;
           curBets.push(bet);
           if (curStreak > maxStreak) {
@@ -232,10 +232,10 @@ router.get('/sequencia-erros', auth, async (req, res) => {
       }
       if (maxStreak > 0) {
         streaks.push({
-          user_id,
-          user_name:  data.user_name,
-          streak:     maxStreak,
-          bets:       maxBets,
+          user_id:   uid,
+          user_name: data.user_name,
+          streak:    maxStreak,
+          bets:      maxBets,
         });
       }
     }
