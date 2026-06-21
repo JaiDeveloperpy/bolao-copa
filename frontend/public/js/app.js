@@ -16,10 +16,11 @@ let tpAllMatches  = [];
 let tpActiveRound = 'all'; // rodada ativa na aba palpites
 
 // Rodadas da fase de grupos por intervalo de datas (UTC-friendly)
+// Rodadas da fase de grupos por intervalo de datas (UTC-friendly)
 const ROUNDS = [
   { id: '1', label: 'Rodada 1', start: '2026-06-11', end: '2026-06-17' },
   { id: '2', label: 'Rodada 2', start: '2026-06-18', end: '2026-06-23' },
-  { id: '3', label: 'Rodada 3', start: '2026-06-24', end: '2026-06-27' },
+  { id: '3', label: 'Rodada 3', start: '2026-06-24', end: '2026-06-28' }, // <-- Alterado para o dia 28
 ];
 
 function getRound(match) {
