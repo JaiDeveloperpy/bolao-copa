@@ -25,7 +25,7 @@ const ROUNDS = [
 
 function getRound(match) {
   if (match.phase !== 'group') return null;
-  const d = match.match_date.slice(0, 10); // YYYY-MM-DD
+  const d = new Date(new Date(match.match_date).getTime() - 3*60*60*1000).toISOString().slice(0, 10); // converte pra BRT
   for (const r of ROUNDS) {
     if (d >= r.start && d <= r.end) return r.id;
   }
