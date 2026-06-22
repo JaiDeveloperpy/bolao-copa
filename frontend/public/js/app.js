@@ -301,7 +301,12 @@ $('save-bet-btn').addEventListener('click', async () => {
     showMsg('bet-msg', '✅ Palpite salvo!', 'success');
     setTimeout(async () => {
       await loadMatches();
-      $('bet-modal').classList.add('hidden');
+      // Abre o proximo jogo aberto em ordem de horario
+      const abertos = allMatches
+        .filter(m => betStatus(m).cls === 'status-open' && m.id !== currentMatch.id)
+        .sort((a, b) => new Date(a.match_date) - new Date(b.match_date));
+      if (abertos.length > 0) openBetModal(abertos[0]);
+      else $('bet-modal').classList.add('hidden');
     }, 800);
   } catch (err) {
     showMsg('bet-msg', err.message, 'error');
