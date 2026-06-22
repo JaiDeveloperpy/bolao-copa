@@ -70,7 +70,7 @@
         <button class="nav-btn" data-page="meus-palpites">Meus Palpites</button>
         <button class="nav-btn" data-page="ranking">Ranking</button>
         <button class="nav-btn" data-page="todos-palpites">🔍 Palpites</button>
-        <a href="/grupos.html" class="nav-btn">🗂️ Grupos</a>
+        <button class="nav-btn" data-page="micos">💀 Micos</button>
         <button class="nav-btn admin-btn hidden" data-page="admin">⚙️ Admin</button>
       </nav>
       <div class="header-user">
@@ -84,7 +84,7 @@
     <button class="mnav-btn active" data-page="jogos">⚽<span>Jogos</span></button>
     <button class="mnav-btn" data-page="meus-palpites">🎯<span>Palpites</span></button>
     <button class="mnav-btn" data-page="todos-palpites">🔍<span>Todos</span></button>
-    <a href="/grupos.html" class="mnav-btn">🗂️<span>Grupos</span></a>
+    <button class="mnav-btn" data-page="micos">💀<span>Micos</span></button>
     <button class="mnav-btn" data-page="ranking">🏆<span>Ranking</span></button>
     <button class="mnav-btn admin-btn hidden" data-page="admin">⚙️<span>Admin</span></button>
   </nav>
@@ -170,6 +170,15 @@
         <button class="round-btn" data-group="palpites" data-round="knockout" style="font-size:0.78rem;padding:0.3rem 0.8rem;border-radius:20px;border:1px solid rgba(255,255,255,0.15);background:transparent;color:var(--gray-light);cursor:pointer">Mata-mata</button>
       </div>
       <div id="tp-list" class="matches-grid" style="margin-top:0.5rem"></div>
+    </div>
+
+    <!-- MICOS -->
+    <div id="page-micos" class="page">
+      <div class="page-header">
+        <h2>💀 Hall da Vergonha</h2>
+        <p>Maiores sequências de erros consecutivos e palpites mais malucos</p>
+      </div>
+      <div id="micos-list"></div>
     </div>
 
     <!-- ADMIN -->
