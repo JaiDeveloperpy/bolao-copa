@@ -161,7 +161,7 @@ async function loadMatches() {
   try {
     const [matches, betsData] = await Promise.all([
       api('/matches'),
-      api('/bets/all-by-match')
+      api('/matches')
     ]);
     allMatches = matches;
     const missingMap = {};
@@ -478,7 +478,7 @@ async function openUserBetsModal(userId, userName, jaiscore) {
 
   try {
     const [betsData, destaques] = await Promise.all([
-      api('/bets/all-by-match'),
+      api('/matches'),
       api(`/bets/destaques/${userId}`).catch(() => ({ lastExact: null, last7: null }))
     ]);
     const matches = (betsData.matches || []).filter(m => m.betting_closed || m.is_finished);
@@ -555,7 +555,7 @@ async function loadTodosPalpites() {
   const list = $('tp-list');
   list.innerHTML = `<div class="loading"><div class="spinner"></div> Carregando palpites...</div>`;
   try {
-    const data = await api('/bets/all-by-match');
+    const data = await api('/matches');
     tpAllMatches = (data.matches || []).filter(m => m.betting_closed || m.is_finished);
     renderTP(tpAllMatches);
   } catch (err) {
