@@ -301,11 +301,7 @@ $('save-bet-btn').addEventListener('click', async () => {
     showMsg('bet-msg', '✅ Palpite salvo!', 'success');
     setTimeout(async () => {
       await loadMatches();
-      const abertos = allMatches.filter(m => betStatus(m).cls === 'status-open');
-      const idx = abertos.findIndex(m => m.id === currentMatch.id);
-      const proximo = abertos[idx + 1];
-      if (proximo) openBetModal(proximo);
-      else $('bet-modal').classList.add('hidden');
+      $('bet-modal').classList.add('hidden');
     }, 800);
   } catch (err) {
     showMsg('bet-msg', err.message, 'error');
@@ -612,7 +608,8 @@ function renderTP(matches) {
   list.style.flexDirection = 'column';
   list.style.gap = '0.6rem';
 
-  list.innerHTML = matches.map((m, idx) => {
+  const sorted = [...matches].sort((a,b) => new Date(b.match_date) - new Date(a.match_date));
+  list.innerHTML = sorted.map((m, idx) => {
     const hasResult = m.is_finished && m.result_home !== null;
     const scoreText = hasResult ? `${m.result_home} – ${m.result_away}` : 'VS';
     const statusCls   = m.is_finished ? 'status-done' : m.betting_closed ? 'status-closed' : 'status-open';
