@@ -284,10 +284,20 @@ function openBetModal(match) {
   $('bet-away').value = match.away_score_bet ?? 0;
   $('bet-msg').textContent = '';
   $('bet-modal').classList.remove('hidden');
+  setTimeout(() => $('bet-home').focus(), 50);
 }
 
 $('modal-close').addEventListener('click', () => $('bet-modal').classList.add('hidden'));
 $('bet-modal').addEventListener('click', e => { if (e.target === $('bet-modal')) $('bet-modal').classList.add('hidden'); });
+
+// UX: seleciona o valor ao focar (re-apostar é digitar direto) e Enter salva / Esc fecha
+['bet-home', 'bet-away'].forEach(id => {
+  $(id).addEventListener('focus', e => e.target.select());
+  $(id).addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('save-bet-btn').click(); } });
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && !$('bet-modal').classList.contains('hidden')) $('bet-modal').classList.add('hidden');
+});
 
 $('save-bet-btn').addEventListener('click', async () => {
   if (!currentMatch) return;
@@ -302,10 +312,12 @@ $('save-bet-btn').addEventListener('click', async () => {
     setTimeout(async () => {
       const saved = currentMatch;
       await loadMatches();
+      // próximo = próximo jogo aberto ainda SEM palpite (ignora data, vários jogos caem no mesmo dia)
       const abertos = allMatches
         .filter(m => betStatus(m).cls === 'status-open' && m.id !== saved.id)
+        .filter(m => m.home_score_bet === null || m.home_score_bet === undefined)
         .sort((a, b) => new Date(a.match_date) - new Date(b.match_date));
-      const proximo = abertos.find(m => new Date(m.match_date) >= new Date(saved.match_date)) || null;
+      const proximo = abertos.find(m => new Date(m.match_date) >= new Date(saved.match_date)) || abertos[0] || null;
       if (proximo) openBetModal(proximo);
       else $('bet-modal').classList.add('hidden');
     }, 800);

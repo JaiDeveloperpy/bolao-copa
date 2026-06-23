@@ -241,9 +241,9 @@
     <div class="modal-teams">
       <div class="modal-team"><span class="team-flag" id="modal-home-flag"></span><span class="team-name" id="modal-home-name"></span></div>
       <div class="modal-score-inputs">
-        <input type="number" id="bet-home" min="0" max="30" value="0" class="score-input" />
+        <input type="number" id="bet-home" min="0" max="30" value="0" class="score-input" inputmode="numeric" />
         <span class="score-dash">–</span>
-        <input type="number" id="bet-away" min="0" max="30" value="0" class="score-input" />
+        <input type="number" id="bet-away" min="0" max="30" value="0" class="score-input" inputmode="numeric" />
       </div>
       <div class="modal-team"><span class="team-flag" id="modal-away-flag"></span><span class="team-name" id="modal-away-name"></span></div>
     </div>
@@ -257,6 +257,8 @@
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@twemoji/api@15.1.0/dist/twemoji.min.js" crossorigin="anonymous"></script>
+<script src="/js/flags.js"></script>
 <script src="/js/app.js"></script>
 </body>
 </html>

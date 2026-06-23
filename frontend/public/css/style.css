@@ -31,6 +31,10 @@
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* Bandeiras/emojis renderizados como imagem pelo Twemoji (ver js/flags.js) */
+img.emoji { height: 1em; width: 1em; vertical-align: -0.125em; display: inline-block; margin: 0 0.05em 0 0.1em; object-fit: contain; }
+.card-team .flag img.emoji, .modal-team .team-flag img.emoji { margin: 0; }
+
 html { font-size: 16px; scroll-behavior: smooth; }
 
 body {
