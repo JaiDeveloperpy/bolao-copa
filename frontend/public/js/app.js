@@ -443,6 +443,39 @@ function renderRankingRowsInner(inner, rows) {
   });
 }
 
+async function loadRanking() {
+  const list = $('ranking-list');
+  list.innerHTML = `
+    <div style="display:flex;gap:0.5rem;margin-bottom:1rem;flex-wrap:wrap">
+      <button onclick="setRankingMode('geral')"
+        style="padding:0.4rem 1rem;border-radius:20px;border:1px solid rgba(255,255,255,0.2);cursor:pointer;font-size:0.85rem;font-weight:600;background:${rankingMode==='geral'?'rgba(57,255,137,0.15)':'transparent'};color:${rankingMode==='geral'?'var(--green-neon)':'var(--gray-light)'}">
+        🏆 Ranking Geral
+      </button>
+      <button onclick="setRankingMode('jjrs')"
+        style="padding:0.4rem 1rem;border-radius:20px;border:1px solid rgba(255,255,255,0.2);cursor:pointer;font-size:0.85rem;font-weight:600;background:${rankingMode==='jjrs'?'rgba(57,255,137,0.15)':'transparent'};color:${rankingMode==='jjrs'?'var(--green-neon)':'var(--gray-light)'}">
+        🎖️ JJRS Ranking
+      </button>
+    </div>
+    <div id="ranking-list-inner"><div class="loading"><div class="spinner"></div> Carregando...</div></div>`;
+
+  if (rankingCache) {
+    renderRankingRowsInner($('ranking-list-inner'), rankingCache);
+    return;
+  }
+  try {
+    rankingCache = await api('/ranking');
+    renderRankingRowsInner($('ranking-list-inner'), rankingCache);
+  } catch (err) {
+    $('ranking-list-inner').innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><p>${err.message}</p></div>`;
+  }
+}
+
+function setRankingMode(mode) {
+  rankingMode = mode;
+  loadRanking();
+}
+
+
 /* =============================================
    MODAL PALPITES DE UM USUÁRIO (via ranking)
 ============================================= */
