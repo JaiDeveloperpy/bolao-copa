@@ -1,0 +1,22 @@
+{
+  "name": "JaiBet 🏆",
+  "short_name": "JaiBet",
+  "description": "Bolão Copa 2026 entre amigos",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0d1f0f",
+  "theme_color": "#39ff89",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/img/img2.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg"
+    },
+    {
+      "src": "/img/img2.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg"
+    }
+  ]
+}
