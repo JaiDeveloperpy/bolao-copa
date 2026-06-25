@@ -384,33 +384,29 @@ function renderMyStats(bets) {
 let rankingMode = 'geral'; // 'geral' | 'jjrs'
 let rankingCache = null;
 
-function renderRankingRows(rows) {
-  const list = $('ranking-list');
+function renderRankingRowsInner(inner, rows) {
   const filtered = rankingMode === 'jjrs'
     ? rows.filter(r => r.name !== 'Felipe Freitas')
     : rows;
 
   if (!filtered.length) {
-    list.innerHTML = `<div class="empty-state"><div class="empty-icon">🏆</div><p>Nenhum participante ainda.</p></div>`;
+    inner.innerHTML = `<div class="empty-state"><div class="empty-icon">🏆</div><p>Nenhum participante.</p></div>`;
     return;
   }
 
-  // Reordenar posições após filtro
-  list.innerHTML = filtered.map((r, i) => {
+  inner.innerHTML = filtered.map((r, i) => {
       const pos = i + 1;
       const posClass = pos === 1 ? 'top1' : pos === 2 ? 'top2' : pos === 3 ? 'top3' : '';
       const rowUserId = r.id || r.user_id;
       const isMe = currentUser && String(rowUserId) === String(currentUser.id);
       const medal = pos === 1 ? '🥇' : pos === 2 ? '🥈' : pos === 3 ? '🥉' : pos;
       const initials = r.name.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase();
-
-      // CORES DO jAIscore (Estilo SofaScore)
       const score = parseFloat(r.jaiscore) || 0.0;
-      let scoreBg = '#4b5563'; // Cinza por padrão (Sem palpites validados)
-      if (score >= 8.0) scoreBg = '#006e38';      // Verde Escuro (Craque)
-      else if (score >= 6.8) scoreBg = '#22c55e'; // Verde Claro (Bom)
-      else if (score >= 5.0) scoreBg = '#eab308'; // Amarelo/Laranja (Regular)
-      else if (score > 0) scoreBg = '#ef4444';    // Vermelho (Bagre)
+      let scoreBg = '#4b5563';
+      if (score >= 8.0) scoreBg = '#006e38';
+      else if (score >= 6.8) scoreBg = '#22c55e';
+      else if (score >= 5.0) scoreBg = '#eab308';
+      else if (score > 0) scoreBg = '#ef4444';
 
       return `
       <div class="ranking-row ${posClass} ${isMe ? 'me' : ''}">
@@ -429,14 +425,12 @@ function renderRankingRows(rows) {
             <div class="rank-detail">❌ Erros: <span>${r.misses}</span></div>
           </div>
         </div>
-        
-        <div class="rank-jaiscore" style="display:flex;flex-direction:column;align-items:center;justify-content:center;margin-right:15px;gap:2px;flex-shrink:0">
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;margin-right:15px;gap:2px;flex-shrink:0">
           <span style="font-size:0.58rem;color:var(--gray-mid);text-transform:uppercase;font-weight:700;letter-spacing:0.5px">jAIscore</span>
-          <div style="background:${scoreBg};color:#white;font-family:'DM Sans',sans-serif;font-weight:700;font-size:0.85rem;padding:3px 7px;border-radius:6px;min-width:34px;text-align:center;box-shadow:0 2px 4px rgba(0,0,0,0.15)">
+          <div style="background:${scoreBg};color:#fff;font-family:'DM Sans',sans-serif;font-weight:700;font-size:0.85rem;padding:3px 7px;border-radius:6px;min-width:34px;text-align:center">
             ${score.toFixed(1)}
           </div>
         </div>
-
         <div class="rank-pts">${r.total_points}<small>pontos</small></div>
       </div>`;
     }).join('');
@@ -447,63 +441,6 @@ function renderRankingRows(rows) {
     });
   });
 }
-
-async function loadRanking() {
-  const list = $('ranking-list');
-
-  // Toggle de modo
-  const toggle = `
-    <div style="display:flex;gap:0.5rem;margin-bottom:1rem;flex-wrap:wrap">
-      <button onclick="setRankingMode('geral')" id="rank-btn-geral"
-        style="padding:0.4rem 1rem;border-radius:20px;border:1px solid rgba(255,255,255,0.2);cursor:pointer;font-size:0.85rem;font-weight:600;
-               background:${rankingMode==='geral'?'rgba(57,255,137,0.15)':'transparent'};
-               color:${rankingMode==='geral'?'var(--green-neon)':'var(--gray-light)'}">
-        🏆 Ranking Geral
-      </button>
-      <button onclick="setRankingMode('jjrs')" id="rank-btn-jjrs"
-        style="padding:0.4rem 1rem;border-radius:20px;border:1px solid rgba(255,255,255,0.2);cursor:pointer;font-size:0.85rem;font-weight:600;
-               background:${rankingMode==='jjrs'?'rgba(57,255,137,0.15)':'transparent'};
-               color:${rankingMode==='jjrs'?'var(--green-neon)':'var(--gray-light)'}">
-        🎖️ JJRS Ranking
-      </button>
-    </div>
-    <div id="ranking-list-inner"></div>`;
-
-  list.innerHTML = toggle;
-
-  // Remapear list para o inner
-  const inner = $('ranking-list-inner');
-
-  if (rankingCache) {
-    renderRankingRowsInner(inner, rankingCache);
-    return;
-  }
-
-  inner.innerHTML = `<div class="loading"><div class="spinner"></div> Carregando ranking...</div>`;
-  try {
-    rankingCache = await api('/ranking');
-    renderRankingRowsInner(inner, rankingCache);
-  } catch (err) {
-    inner.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><p>${err.message}</p></div>`;
-  }
-}
-
-function setRankingMode(mode) {
-  rankingMode = mode;
-  loadRanking();
-}
-
-function renderRankingRowsInner(inner, rows) {
-  const filtered = rankingMode === 'jjrs'
-    ? rows.filter(r => r.name !== 'Felipe Freitas')
-    : rows;
-
-  if (!filtered.length) {
-    inner.innerHTML = `<div class="empty-state"><div class="empty-icon">🏆</div><p>Nenhum participante.</p></div>`;
-    return;
-  }
-
-  inner.innerHTML = filtered.map((r, i) => {
 
 /* =============================================
    MODAL PALPITES DE UM USUÁRIO (via ranking)
