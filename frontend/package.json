@@ -1,0 +1,18 @@
+{
+  "name": "frontend",
+  "version": "1.0.0",
+  "description": "Frontend for Bolão Copa - World Cup betting application",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"No tests configured for static HTML site\"",
+    "lint": "echo \"No linter configured for static HTML site\"",
+    "build": "echo \"Static site - no build step required\"",
+    "dev": "echo \"Use a local server to serve the public directory\""
+  },
+  "keywords": ["vercel", "analytics", "world-cup", "betting"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@vercel/analytics": "^2.0.1"
+  }
+}
