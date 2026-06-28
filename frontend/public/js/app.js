@@ -283,49 +283,100 @@ function openBetModal(match) {
   $('bet-home').value = match.home_score_bet ?? 0;
   $('bet-away').value = match.away_score_bet ?? 0;
   $('bet-msg').textContent = '';
+
+  // Mostrar/ocultar classificador ao mudar placar
+  updateClassifierVisibility(match);
+  // Restaura seleção prévia do classificador (se o usuário já tinha apostado)
+  if (match.classifier_team_id && $('classifier-select')) {
+    $('classifier-select').value = match.classifier_team_id;
+  }
+  ['bet-home', 'bet-away'].forEach(id => {
+    $(id).oninput = () => updateClassifierVisibility(match);
+  });
+
   $('bet-modal').classList.remove('hidden');
   setTimeout(() => $('bet-home').focus(), 50);
 }
 
+function updateClassifierVisibility(match) {
+  const isKnockout = match.phase !== 'group';
+  const isDraw = parseInt($('bet-home').value) === parseInt($('bet-away').value);
+  const container = $('classifier-container');
+  if (!container) return;
+  if (isKnockout && isDraw) {
+    container.style.display = 'block';
+    const prev = $('classifier-select').value;
+    $('classifier-select').innerHTML = `
+      <option value="">Selecione quem se classifica...</option>
+      <option value="${match.home_team_id}">${match.home_flag || ''} ${match.home_team_name}</option>
+      <option value="${match.away_team_id}">${match.away_flag || ''} ${match.away_team_name}</option>`;
+    if (prev) $('classifier-select').value = prev;
+  } else {
+    container.style.display = 'none';
+    if ($('classifier-select')) $('classifier-select').value = '';
+  }
+
+  // Atualiza o guide de pontuação dinamicamente
+  const guide = $('modal-points-guide');
+  if (!guide) return;
+  if (isKnockout && isDraw) {
+    guide.innerHTML = `
+      <span class="pts-badge pts-10" style="white-space:normal;line-height:1.3">10pts placar exato + classif. certo</span>
+      <span class="pts-badge pts-7" style="white-space:normal;line-height:1.3">7pts placar exato ou empate + classif. certo</span>
+      <span class="pts-badge pts-5" style="white-space:normal;line-height:1.3">5pts só empate</span>`;
+  } else {
+    guide.innerHTML = `
+      <span class="pts-badge pts-10">10pts placar exato</span>
+      <span class="pts-badge pts-7">7pts vencedor+saldo</span>
+      <span class="pts-badge pts-5">5pts só vencedor</span>`;
+  }
+}
+
+// Fechar modal ao clicar no X ou fora
 $('modal-close').addEventListener('click', () => $('bet-modal').classList.add('hidden'));
 $('bet-modal').addEventListener('click', e => { if (e.target === $('bet-modal')) $('bet-modal').classList.add('hidden'); });
 
-// UX: seleciona o valor ao focar (re-apostar é digitar direto) e Enter salva / Esc fecha
-['bet-home', 'bet-away'].forEach(id => {
-  $(id).addEventListener('focus', e => e.target.select());
-  $(id).addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('save-bet-btn').click(); } });
-});
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape' && !$('bet-modal').classList.contains('hidden')) $('bet-modal').classList.add('hidden');
-});
-
+// Salvar palpite
 $('save-bet-btn').addEventListener('click', async () => {
   if (!currentMatch) return;
+  const homeScore = parseInt($('bet-home').value);
+  const awayScore = parseInt($('bet-away').value);
+  const classifierTeamId = $('classifier-select') ? ($('classifier-select').value || null) : null;
+
+  const isKnockout = currentMatch.phase !== 'group';
+  const isDraw = homeScore === awayScore;
+  if (isKnockout && isDraw && !classifierTeamId) {
+    $('bet-msg').textContent = '⚠️ Selecione quem classifica no empate.';
+    $('bet-msg').className = 'form-msg error';
+    return;
+  }
+
   const btn = $('save-bet-btn');
   btn.textContent = 'Salvando...'; btn.disabled = true;
   try {
-    await api('/bets', {
-      method: 'POST',
-      body: JSON.stringify({ match_id: currentMatch.id, home_score_bet: parseInt($('bet-home').value), away_score_bet: parseInt($('bet-away').value) })
-    });
-    showMsg('bet-msg', '✅ Palpite salvo!', 'success');
-    setTimeout(async () => {
-      const saved = currentMatch;
-      await loadMatches();
-      // próximo = próximo jogo aberto ainda SEM palpite (ignora data, vários jogos caem no mesmo dia)
-      const abertos = allMatches
-        .filter(m => betStatus(m).cls === 'status-open' && m.id !== saved.id)
-        .filter(m => m.home_score_bet === null || m.home_score_bet === undefined)
-        .sort((a, b) => new Date(a.match_date) - new Date(b.match_date));
-      const proximo = abertos.find(m => new Date(m.match_date) >= new Date(saved.match_date)) || abertos[0] || null;
-      if (proximo) openBetModal(proximo);
-      else $('bet-modal').classList.add('hidden');
-    }, 800);
+    const body = { match_id: currentMatch.id, home_score_bet: homeScore, away_score_bet: awayScore };
+    if (classifierTeamId) body.classifier_team_id = parseInt(classifierTeamId);
+    const res = await api('/bets', { method: 'POST', body: JSON.stringify(body) });
+    $('bet-msg').textContent = res.message || '✅ Palpite salvo!';
+    $('bet-msg').className = 'form-msg success';
+    // Atualiza o palpite no cache local
+    const idx = allMatches.findIndex(m => m.id === currentMatch.id);
+    if (idx !== -1) {
+      allMatches[idx].home_score_bet     = homeScore;
+      allMatches[idx].away_score_bet     = awayScore;
+      allMatches[idx].classifier_team_id = classifierTeamId ? parseInt(classifierTeamId) : null;
+    }
+    setTimeout(() => {
+      $('bet-modal').classList.add('hidden');
+      renderMatches();
+    }, 1200);
   } catch (err) {
-    showMsg('bet-msg', err.message, 'error');
-  } finally { btn.textContent = 'Salvar Palpite ⚽'; btn.disabled = false; }
+    $('bet-msg').textContent = err.message;
+    $('bet-msg').className = 'form-msg error';
+  } finally {
+    btn.textContent = 'Salvar Palpite ⚽'; btn.disabled = false;
+  }
 });
-
 /* =============================================
    MY BETS
 ============================================= */
@@ -614,10 +665,20 @@ async function loadTodosPalpites() {
 
 function buildTPTable(m) {
   const hasResult = m.is_finished && m.result_home !== null;
+  const isKnockout = m.phase !== 'group';
   const sorted = [...m.bets].sort((a, b) =>
     hasResult ? (b.points_earned ?? -1) - (a.points_earned ?? -1)
               : (a.user_name || '').localeCompare(b.user_name || '')
   );
+
+  // Cabeçalho extra: quem realmente classificou (só mata-mata com empate e resultado)
+  let classifierHeader = '';
+  if (isKnockout && hasResult && m.result_home === m.result_away && m.actual_classifier_name) {
+    classifierHeader = `
+      <div style="padding:0.45rem 1rem;background:rgba(57,255,137,0.07);border-bottom:1px solid rgba(57,255,137,0.15);font-size:0.78rem;color:var(--green-neon)">
+        🏆 Classificado: <strong>${m.actual_classifier_flag || ''} ${m.actual_classifier_name}</strong>
+      </div>`;
+  }
 
   const betsHtml = !sorted.length
     ? `<div style="padding:0.8rem 1rem;color:var(--gray-mid);font-size:0.85rem">Nenhum palpite ainda.</div>`
@@ -625,6 +686,7 @@ function buildTPTable(m) {
     <thead><tr style="background:rgba(0,0,0,0.15)">
       <th style="padding:0.5rem 1rem;text-align:left;font-size:0.72rem;color:var(--gray-light);text-transform:uppercase;letter-spacing:.5px;font-weight:600">Participante</th>
       <th style="padding:0.5rem 1rem;text-align:left;font-size:0.72rem;color:var(--gray-light);text-transform:uppercase;letter-spacing:.5px;font-weight:600">Palpite</th>
+      ${isKnockout ? `<th style="padding:0.5rem 0.75rem;text-align:left;font-size:0.72rem;color:var(--gray-light);text-transform:uppercase;letter-spacing:.5px;font-weight:600">Classif.</th>` : ''}
       <th style="padding:0.5rem 1rem;text-align:left;font-size:0.72rem;color:var(--gray-light);text-transform:uppercase;letter-spacing:.5px;font-weight:600">Pontos</th>
     </tr></thead>
     <tbody>${sorted.map(b => {
@@ -638,17 +700,39 @@ function buildTPTable(m) {
       const ptsEl = hasResult && b.is_scored
         ? (() => { const p = b.points_earned; const c = p>=10?'pts-10':p>=7?'pts-7':p>=5?'pts-5':'pts-0'; return `<span class="pts-badge ${c}">${p}pts</span>`; })()
         : `<span style="color:var(--gray-mid);font-size:0.8rem">—</span>`;
+
+      // Coluna classificador: só aparece em mata-mata
+      let classifEl = '';
+      if (isKnockout) {
+        const betIsDraw = b.bet_home === b.bet_away;
+        if (betIsDraw && b.bet_classifier_name) {
+          // Acertou o classificador?
+          const clfCorrect = hasResult && m.actual_classifier_id &&
+            String(b.classifier_team_id) === String(m.actual_classifier_id);
+          const clfWrong = hasResult && m.actual_classifier_id && !clfCorrect;
+          const color = clfCorrect ? 'var(--green-neon)' : clfWrong ? '#f87171' : 'var(--off-white)';
+          classifEl = `<td style="padding:0.65rem 0.75rem;font-size:0.8rem;color:${color}">
+            ${b.bet_classifier_flag || ''} ${b.bet_classifier_name}
+          </td>`;
+        } else if (betIsDraw) {
+          classifEl = `<td style="padding:0.65rem 0.75rem;font-size:0.75rem;color:var(--gray-mid)">—</td>`;
+        } else {
+          classifEl = `<td style="padding:0.65rem 0.75rem;font-size:0.72rem;color:var(--gray-mid)">sem empate</td>`;
+        }
+      }
+
       return `<tr style="border-top:1px solid rgba(255,255,255,0.06)">
         <td style="padding:0.65rem 1rem;font-size:0.88rem;font-weight:${b.is_mine?'700':'400'}">
           ${b.user_name}${b.is_mine?`<span style="font-size:.65rem;background:var(--green-main);color:var(--white);padding:1px 6px;border-radius:8px;margin-left:5px">Você</span>`:''}
         </td>
         <td style="padding:0.65rem 1rem;font-family:'Bebas Neue',sans-serif;font-size:1.15rem;letter-spacing:2px;color:${betColor}">${b.bet_home} – ${b.bet_away}</td>
+        ${classifEl}
         <td style="padding:0.65rem 1rem">${ptsEl}</td>
       </tr>`;
     }).join('')}</tbody>
   </table>`;
 
-  return betsHtml;
+  return classifierHeader + betsHtml;
 }
 
 function renderTP(matches) {
@@ -856,9 +940,52 @@ async function loadAdmin() {
     $('am-group').innerHTML = `<option value="">Nenhum</option>` + groups.map(g => `<option value="${g.id}">Grupo ${g.name}</option>`).join('');
     const matches = await api('/matches');
     const openMatches = matches.filter(m => !m.is_finished);
+
+    // Guarda referência dos times por matchId para o dropdown do classificador
+    window._adminMatchTeams = {};
+    openMatches.forEach(m => {
+      window._adminMatchTeams[m.id] = {
+        phase:         m.phase,
+        home_team_id:  m.home_team_id,
+        home_team_name: m.home_team_name,
+        home_flag:     m.home_flag,
+        away_team_id:  m.away_team_id,
+        away_team_name: m.away_team_name,
+        away_flag:     m.away_flag,
+      };
+    });
+
     $('result-match').innerHTML = openMatches.map(m =>
-      `<option value="${m.id}">${m.home_flag||''}${m.home_team_name} vs ${m.away_flag||''}${m.away_team_name} · ${formatDate(m.match_date)}</option>`
+      `<option value="${m.id}" data-phase="${m.phase}">${m.home_flag||''}${m.home_team_name} vs ${m.away_flag||''}${m.away_team_name} · ${formatDate(m.match_date)}</option>`
     ).join('') || '<option value="">Nenhum jogo pendente</option>';
+
+    // Atualiza o dropdown de classificador ao mudar jogo ou placar
+    const updateAdminClassifier = () => {
+      const matchId = $('result-match').value;
+      const info = window._adminMatchTeams?.[matchId];
+      const homeScore = parseInt($('result-home').value) || 0;
+      const awayScore = parseInt($('result-away').value) || 0;
+      const isDraw = homeScore === awayScore;
+      const isKnockout = info && info.phase !== 'group';
+      const container = $('admin-classifier-container');
+      if (!container) return;
+      if (info && isKnockout && isDraw) {
+        container.style.display = 'block';
+        $('admin-classifier-select').innerHTML = `
+          <option value="">Selecione o time classificado...</option>
+          <option value="${info.home_team_id}">${info.home_flag || ''} ${info.home_team_name}</option>
+          <option value="${info.away_team_id}">${info.away_flag || ''} ${info.away_team_name}</option>`;
+      } else {
+        container.style.display = 'none';
+        $('admin-classifier-select').value = '';
+      }
+    };
+
+    $('result-match').onchange = updateAdminClassifier;
+    $('result-home').oninput   = updateAdminClassifier;
+    $('result-away').oninput   = updateAdminClassifier;
+    updateAdminClassifier();
+
     renderAdminMatches(matches);
   } catch (err) { console.error(err); }
 }
@@ -898,7 +1025,25 @@ $('result-form').addEventListener('submit', async e => {
   const btn = e.target.querySelector('button');
   btn.textContent = 'Salvando...'; btn.disabled = true;
   try {
-    const res = await api(`/matches/${matchId}/result`, { method: 'PATCH', body: JSON.stringify({ home_score: parseInt($('result-home').value), away_score: parseInt($('result-away').value) }) });
+    const homeScore = parseInt($('result-home').value);
+    const awayScore = parseInt($('result-away').value);
+    const body = { home_score: homeScore, away_score: awayScore };
+
+    // Verifica se é mata-mata com empate
+    const selOpt = $('result-match').options[$('result-match').selectedIndex];
+    const isKnockout = selOpt && selOpt.dataset.phase && selOpt.dataset.phase !== 'group';
+    const isDraw = homeScore === awayScore;
+    if (isKnockout && isDraw) {
+      const clfId = $('admin-classifier-select').value;
+      if (!clfId) {
+        showMsg('result-msg', '⚠️ Selecione o time que classificou.', 'error');
+        btn.textContent = 'Registrar & Pontuar'; btn.disabled = false;
+        return;
+      }
+      body.actual_classifier_id = parseInt(clfId);
+    }
+
+    const res = await api(`/matches/${matchId}/result`, { method: 'PATCH', body: JSON.stringify(body) });
     showMsg('result-msg', res.message, 'success'); loadAdmin();
   } catch (err) { showMsg('result-msg', err.message, 'error'); }
   finally { btn.textContent = 'Registrar & Pontuar'; btn.disabled = false; }
