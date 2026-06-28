@@ -563,6 +563,9 @@ async function openUserBetsModal(userId, userName, jaiscore) {
       return;
     }
 
+    // Ordenar do mais recente pro mais antigo
+    userBets.sort((a, b) => new Date(b.match.match_date) - new Date(a.match.match_date));
+
     $('ubm-body').innerHTML += userBets.map(({ match: m, bet: b }) => {
       const hasResult = m.is_finished && m.result_home !== null;
       let betColor = 'var(--off-white)';
