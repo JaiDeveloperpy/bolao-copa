@@ -146,6 +146,60 @@ router.get('/all-by-match', auth, async (req, res) => {
   }
 });
 
+// POST /api/bets — criar ou atualizar palpite
+router.post('/', auth, async (req, res) => {
+  const { match_id, home_score_bet, away_score_bet, classifier_team_id } = req.body;
+  if (match_id === undefined || home_score_bet === undefined || away_score_bet === undefined)
+    return res.status(400).json({ error: 'Campos obrigatórios: match_id, home_score_bet, away_score_bet.' });
+  if (home_score_bet < 0 || away_score_bet < 0)
+    return res.status(400).json({ error: 'Placar não pode ser negativo.' });
+  try {
+    const matchRes = await db.query(
+      'SELECT id, betting_closed, is_finished, match_date, phase, home_team_id, away_team_id FROM matches WHERE id = $1',
+      [match_id]
+    );
+    if (!matchRes.rows.length) return res.status(404).json({ error: 'Jogo não encontrado.' });
+    const match = matchRes.rows[0];
+    
+    // ALTERADO AQUI: Fallback agora é 5 minutos antes do jogo
+    const closeMinutes = parseInt(process.env.BET_CLOSE_MINUTES || '5');
+    
+    const closeTime = new Date(match.match_date);
+    closeTime.setMinutes(closeTime.getMinutes() - closeMinutes);
+    if (match.betting_closed || match.is_finished || new Date() >= closeTime)
+      return res.status(403).json({ error: 'As apostas para este jogo estão encerradas.' });
+
+    // Mata-mata com empate precisa de classificado
+    const isKnockout = match.phase !== 'group';
+    const isDraw = parseInt(home_score_bet) === parseInt(away_score_bet);
+    if (isKnockout && isDraw && !classifier_team_id)
+      return res.status(400).json({ error: 'Em empate no mata-mata, informe quem você acha que classifica.' });
+
+    // Valida que o classifier_team_id é um dos dois times do jogo
+    if (classifier_team_id) {
+      const validTeams = [match.home_team_id, match.away_team_id].map(String);
+      if (!validTeams.includes(String(classifier_team_id))) {
+        return res.status(400).json({ error: 'Time classificador inválido para este jogo.' });
+      }
+    }
+
+    const result = await db.query(
+      `INSERT INTO bets (user_id, match_id, home_score_bet, away_score_bet, classifier_team_id)
+       VALUES ($1, $2, $3, $4, $5)
+       ON CONFLICT (user_id, match_id) DO UPDATE
+         SET home_score_bet     = $3,
+             away_score_bet     = $4,
+             classifier_team_id = $5,
+             updated_at         = NOW()
+       RETURNING *`,
+      [req.user.id, match_id, home_score_bet, away_score_bet, classifier_team_id || null]
+    );
+    res.status(201).json({ message: '✅ Palpite salvo!', bet: result.rows[0] });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Erro ao salvar palpite.' });
+  }
+});
 
 // GET /api/bets/sequencia-erros — maior sequência de erros consecutivos por usuário
 router.get('/sequencia-erros', auth, async (req, res) => {

@@ -70,14 +70,13 @@ function formatDate(iso) {
 }
 
 function betStatus(match) {
-  const closeMs = 60 * 60 * 1000;
+  const closeMs = 5 * 60 * 1000; // <-- MODIFICADO: Agora fecha 5 minutos antes do jogo
   const matchTime = new Date(match.match_date).getTime();
   if (match.is_finished) return { label: 'Finalizado', cls: 'status-done' };
   if (match.betting_closed || Date.now() >= matchTime - closeMs)
     return { label: 'Fechado', cls: 'status-closed' };
   return { label: 'Apostas abertas', cls: 'status-open' };
 }
-
 /* =============================================
    AUTH
 ============================================= */
