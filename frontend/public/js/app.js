@@ -352,23 +352,44 @@ $('save-bet-btn').addEventListener('click', async () => {
 
   const btn = $('save-bet-btn');
   btn.textContent = 'Salvando...'; btn.disabled = true;
+  
   try {
     const body = { match_id: currentMatch.id, home_score_bet: homeScore, away_score_bet: awayScore };
     if (classifierTeamId) body.classifier_team_id = parseInt(classifierTeamId);
+    
     const res = await api('/bets', { method: 'POST', body: JSON.stringify(body) });
+    
     $('bet-msg').textContent = res.message || '✅ Palpite salvo!';
     $('bet-msg').className = 'form-msg success';
-    // Atualiza o palpite no cache local
+    
+    // Atualiza o palpite no cache local do front
     const idx = allMatches.findIndex(m => m.id === currentMatch.id);
     if (idx !== -1) {
       allMatches[idx].home_score_bet     = homeScore;
       allMatches[idx].away_score_bet     = awayScore;
       allMatches[idx].classifier_team_id = classifierTeamId ? parseInt(classifierTeamId) : null;
     }
+
     setTimeout(() => {
-      $('bet-modal').classList.add('hidden');
-      renderMatches();
-    }, 1200);
+      // 🔥 LÓGICA PARA PULAR PRO PRÓXIMO JOGO AUTOMATICAMENTE:
+      // Procura o próximo jogo que esteja aberto E que o usuário ainda não tenha votado
+      const nextMatch = allMatches.find(m => 
+        m.id !== currentMatch.id && 
+        betStatus(m).cls === 'status-open' && 
+        (m.home_score_bet === null || m.home_score_bet === undefined)
+      );
+
+      renderMatches(); // Atualiza os status na listagem de fundo
+
+      if (nextMatch) {
+        // Se achou um jogo sem palpite, já abre o modal dele direto!
+        openBetModal(nextMatch);
+      } else {
+        // Se já preencheu todos, aí sim fecha o modal de vez
+        $('bet-modal').classList.add('hidden');
+      }
+    }, 1000);
+
   } catch (err) {
     $('bet-msg').textContent = err.message;
     $('bet-msg').className = 'form-msg error';
