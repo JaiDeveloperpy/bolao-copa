@@ -6,17 +6,18 @@ const RAPIDAPI_KEY  = process.env.RAPIDAPI_KEY || '13d0567aa6c889664c6be8ff4ada0
 const LEAGUE_ID     = 1;      // Copa do Mundo FIFA
 const SEASON        = 2026;
 
-// ─── 1. Fechar apostas 2h antes ───────────────────────────────────
+// ─── 1. Fechar apostas X min antes (mesma regra da rota POST /) ───
 async function fecharApostasAutomatico() {
   try {
+    const closeMinutes = parseInt(process.env.BET_CLOSE_MINUTES || '5');
     const result = await db.query(`
       UPDATE matches
       SET betting_closed = TRUE
       WHERE betting_closed = FALSE
         AND is_finished   = FALSE
-        AND match_date   <= NOW() + INTERVAL '2 hours'
+        AND match_date   <= NOW() + make_interval(mins => $1::int)
       RETURNING id
-    `);
+    `, [closeMinutes]);
     if (result.rows.length > 0)
       console.log(`🔒 ${result.rows.length} jogo(s) com apostas fechadas automaticamente`);
   } catch (err) {
