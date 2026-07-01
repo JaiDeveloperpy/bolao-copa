@@ -1,5 +1,8 @@
 const jwt = require('jsonwebtoken');
 
+// ⚠️ ATENÇÃO: Use exatamente a MESMA string/chave que você colocou lá no routes/auth.js
+const JWT_SECRET_KEY = process.env.JWT_SECRET || 'Zk5q8cfTztWcjWVFPELaZJ0go5yROh1MxmCEU6mEtb4=';
+
 const auth = (req, res, next) => {
   const header = req.headers['authorization'];
   if (!header || !header.startsWith('Bearer ')) {
@@ -8,7 +11,8 @@ const auth = (req, res, next) => {
 
   const token = header.split(' ')[1];
   try {
-    const payload = jwt.verify(token, process.env.JWT_SECRET);
+    // Trocado de process.env.JWT_SECRET para JWT_SECRET_KEY
+    const payload = jwt.verify(token, JWT_SECRET_KEY);
     req.user = payload;
     next();
   } catch (err) {

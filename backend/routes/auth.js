@@ -5,6 +5,9 @@ const jwt = require('jsonwebtoken');
 const db = require('../db');
 const { auth } = require('../middleware/auth');
 
+// Força uma chave padrão se o Railway moscá com o .env
+const JWT_SECRET_KEY = process.env.JWT_SECRET || 'Zk5q8cfTztWcjWVFPELaZJ0go5yROh1MxmCEU6mEtb4=';
+
 // POST /api/auth/register
 router.post('/register', async (req, res) => {
   const { name, email, password } = req.body;
@@ -33,7 +36,7 @@ router.post('/register', async (req, res) => {
     const user = result.rows[0];
     const token = jwt.sign(
       { id: user.id, email: user.email, is_admin: user.is_admin },
-      process.env.JWT_SECRET,
+      JWT_SECRET_KEY, // Usando a constante corrigida aqui
       { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
     );
 
@@ -70,7 +73,7 @@ router.post('/login', async (req, res) => {
 
     const token = jwt.sign(
       { id: user.id, email: user.email, is_admin: user.is_admin },
-      process.env.JWT_SECRET,
+      JWT_SECRET_KEY, // Usando a constante corrigida aqui
       { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
     );
 
