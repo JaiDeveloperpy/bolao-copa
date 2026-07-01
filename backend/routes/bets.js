@@ -148,6 +148,7 @@ router.get('/all-by-match', auth, async (req, res) => {
 
 // POST /api/bets — criar ou atualizar palpite
 router.post('/', auth, async (req, res) => {
+  console.log('DEBUG closeMinutes env:', JSON.stringify(process.env.BET_CLOSE_MINUTES));
   const { match_id, home_score_bet, away_score_bet, classifier_team_id } = req.body;
   if (match_id === undefined || home_score_bet === undefined || away_score_bet === undefined)
     return res.status(400).json({ error: 'Campos obrigatórios: match_id, home_score_bet, away_score_bet.' });
@@ -163,9 +164,11 @@ router.post('/', auth, async (req, res) => {
     
     // ALTERADO AQUI: Fallback agora é 5 minutos antes do jogo
     const closeMinutes = parseInt(process.env.BET_CLOSE_MINUTES || '5');
-    
+    console.log('DEBUG closeMinutes parsed:', closeMinutes);
+
     const closeTime = new Date(match.match_date);
     closeTime.setMinutes(closeTime.getMinutes() - closeMinutes);
+    console.log('DEBUG match_date:', match.match_date, '| closeTime:', closeTime.toISOString(), '| now:', new Date().toISOString());
     if (match.betting_closed || match.is_finished || new Date() >= closeTime)
       return res.status(403).json({ error: 'As apostas para este jogo estão encerradas.' });
 
