@@ -465,19 +465,94 @@ function renderRankingRowsInner(inner, rows) {
     return;
   }
 
-  inner.innerHTML = filtered.map((r, i) => {
-      const pos = i + 1;
-      const posClass = pos === 1 ? 'top1' : pos === 2 ? 'top2' : pos === 3 ? 'top3' : '';
+  // Card especial do campeão (1º lugar)
+  const campeao = filtered[0];
+  const campeaoId = campeao.id || campeao.user_id;
+  const campeaoInitials = campeao.name.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase();
+  const isMeCampeao = currentUser && String(campeaoId) === String(currentUser.id);
+
+  const campeaoCard = `
+    <div id="campeao-card" style="
+      position:relative; overflow:hidden; margin-bottom:1.5rem;
+      background: linear-gradient(135deg, #1a1000 0%, #2a1f00 40%, #1a0f00 100%);
+      border: 2px solid var(--gold);
+      border-radius: 18px; padding: 2rem 1.5rem 1.5rem;
+      box-shadow: 0 0 60px rgba(245,197,24,0.25), 0 0 120px rgba(245,197,24,0.1), inset 0 1px 0 rgba(255,255,255,0.1);
+      animation: campeao-pulse 3s ease-in-out infinite;
+      cursor:pointer;
+    " onclick="openUserBetsModal('${campeaoId}', '${campeao.name}', 0)">
+
+      <!-- Canvas fogos de artifício -->
+      <canvas id="fireworks-canvas" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0"></canvas>
+
+      <!-- Estrelas decorativas -->
+      <div style="position:absolute;top:10px;left:15px;font-size:1.2rem;opacity:0.6;animation:twinkle 1.5s ease-in-out infinite">⭐</div>
+      <div style="position:absolute;top:15px;right:20px;font-size:1rem;opacity:0.5;animation:twinkle 1.8s ease-in-out infinite 0.3s">✨</div>
+      <div style="position:absolute;bottom:15px;left:20px;font-size:0.9rem;opacity:0.4;animation:twinkle 2s ease-in-out infinite 0.6s">⭐</div>
+
+      <div style="position:relative;z-index:1;text-align:center">
+        <div style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:3px;color:var(--gold);margin-bottom:0.75rem;opacity:0.8">
+          🏆 CAMPEÃO DO BOLÃO 2026 🏆
+        </div>
+
+        <div style="font-size:4rem;margin-bottom:0.5rem;animation:trophy-bounce 1s ease-in-out infinite">🏆</div>
+
+        <div style="
+          font-family:'Bebas Neue',sans-serif;
+          font-size:clamp(2rem,6vw,3.2rem);
+          letter-spacing:3px;
+          background: linear-gradient(135deg, #ffe066 0%, var(--gold) 40%, #c99b10 100%);
+          -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+          margin-bottom:0.5rem;
+          text-shadow: none;
+        ">${campeao.name}${isMeCampeao ? ' 👑' : ''}</div>
+
+        <div style="display:flex;justify-content:center;gap:1.5rem;margin:1rem 0;flex-wrap:wrap">
+          <div style="text-align:center">
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:2.2rem;color:var(--gold);line-height:1">${campeao.total_points}</div>
+            <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:1px;color:rgba(245,197,24,0.6)">pontos</div>
+          </div>
+          <div style="width:1px;background:rgba(245,197,24,0.2)"></div>
+          <div style="text-align:center">
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:2.2rem;color:var(--gold);line-height:1">${campeao.exact_scores}</div>
+            <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:1px;color:rgba(245,197,24,0.6)">exatos</div>
+          </div>
+          <div style="width:1px;background:rgba(245,197,24,0.2)"></div>
+          <div style="text-align:center">
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:2.2rem;color:var(--gold);line-height:1">${campeao.total_bets}</div>
+            <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:1px;color:rgba(245,197,24,0.6)">palpites</div>
+          </div>
+        </div>
+
+        <div style="font-size:0.78rem;color:rgba(245,197,24,0.5);font-style:italic">
+          clique para ver os palpites
+        </div>
+      </div>
+    </div>
+
+    <style>
+      @keyframes campeao-pulse {
+        0%,100% { box-shadow: 0 0 60px rgba(245,197,24,0.25), 0 0 120px rgba(245,197,24,0.1); }
+        50% { box-shadow: 0 0 80px rgba(245,197,24,0.45), 0 0 160px rgba(245,197,24,0.2); }
+      }
+      @keyframes trophy-bounce {
+        0%,100% { transform: translateY(0) rotate(-3deg); }
+        50% { transform: translateY(-8px) rotate(3deg); }
+      }
+      @keyframes twinkle {
+        0%,100% { opacity:0.6; transform:scale(1); }
+        50% { opacity:1; transform:scale(1.3); }
+      }
+    </style>`;
+
+  // Restante do ranking (2º em diante)
+  const restHtml = filtered.slice(1).map((r, i) => {
+      const pos = i + 2;
+      const posClass = pos === 2 ? 'top2' : pos === 3 ? 'top3' : '';
       const rowUserId = r.id || r.user_id;
       const isMe = currentUser && String(rowUserId) === String(currentUser.id);
-      const medal = pos === 1 ? '🥇' : pos === 2 ? '🥈' : pos === 3 ? '🥉' : pos;
+      const medal = pos === 2 ? '🥈' : pos === 3 ? '🥉' : pos;
       const initials = r.name.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase();
-      const score = parseFloat(r.jaiscore) || 0.0;
-      let scoreBg = '#4b5563';
-      if (score >= 8.0) scoreBg = '#006e38';
-      else if (score >= 6.8) scoreBg = '#22c55e';
-      else if (score >= 5.0) scoreBg = '#eab308';
-      else if (score > 0) scoreBg = '#ef4444';
 
       return `
       <div class="ranking-row ${posClass} ${isMe ? 'me' : ''}">
@@ -485,7 +560,7 @@ function renderRankingRowsInner(inner, rows) {
         <div class="rank-avatar">${r.avatar_url ? `<img src="${r.avatar_url}" style="width:100%;height:100%;border-radius:50%;object-fit:cover"/>` : initials}</div>
         <div class="rank-info">
           <div class="rank-name">
-            <span class="rank-name-link" data-user-id="${rowUserId}" data-user-name="${r.name}" data-jaiscore="${score}" style="cursor:pointer;text-decoration:underline;text-decoration-color:rgba(255,255,255,0.2);text-underline-offset:3px">${r.name}</span>
+            <span class="rank-name-link" data-user-id="${rowUserId}" data-user-name="${r.name}" data-jaiscore="0" style="cursor:pointer;text-decoration:underline;text-decoration-color:rgba(255,255,255,0.2);text-underline-offset:3px">${r.name}</span>
             ${isMe ? ' <span style="color:var(--gold);font-size:0.75rem">(você)</span>' : ''}
             ${r.is_admin ? ' <span style="color:var(--green-neon);font-size:0.72rem;background:rgba(57,255,137,0.1);padding:1px 7px;border-radius:8px;margin-left:4px">⚙️ Admin</span>' : ''}
           </div>
@@ -497,21 +572,89 @@ function renderRankingRowsInner(inner, rows) {
             <div class="rank-detail">❌ Erros: <span>${r.misses}</span></div>
           </div>
         </div>
-        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;margin-right:15px;gap:2px;flex-shrink:0">
-          <span style="font-size:0.58rem;color:var(--gray-mid);text-transform:uppercase;font-weight:700;letter-spacing:0.5px">jAIscore</span>
-          <div style="background:${scoreBg};color:#fff;font-family:'DM Sans',sans-serif;font-weight:700;font-size:0.85rem;padding:3px 7px;border-radius:6px;min-width:34px;text-align:center">
-            ${score.toFixed(1)}
-          </div>
-        </div>
         <div class="rank-pts">${r.total_points}<small>pontos</small></div>
       </div>`;
     }).join('');
+
+  inner.innerHTML = campeaoCard + '<div class="ranking-container" style="margin-top:0">' + restHtml + '</div>';
+
+  // Iniciar fogos de artifício
+  setTimeout(() => initFireworks(), 100);
 
   inner.querySelectorAll('.rank-name-link').forEach(el => {
     el.addEventListener('click', () => {
       openUserBetsModal(el.dataset.userId, el.dataset.userName, el.dataset.jaiscore);
     });
   });
+}
+
+function initFireworks() {
+  const canvas = document.getElementById('fireworks-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  canvas.width = canvas.offsetWidth;
+  canvas.height = canvas.offsetHeight;
+
+  const particles = [];
+  const colors = ['#f5c518','#39ff89','#ffffff','#ff6b6b','#4a9eff','#ffe066'];
+
+  function createBurst(x, y) {
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    for (let i = 0; i < 28; i++) {
+      const angle = (Math.PI * 2 / 28) * i;
+      const speed = 1.5 + Math.random() * 2.5;
+      particles.push({
+        x, y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        alpha: 1,
+        color,
+        size: 2 + Math.random() * 2,
+        decay: 0.015 + Math.random() * 0.01,
+      });
+    }
+  }
+
+  let frameCount = 0;
+  function animate() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    frameCount++;
+
+    // Lançar fogos aleatórios
+    if (frameCount % 40 === 0) {
+      createBurst(
+        canvas.width * (0.2 + Math.random() * 0.6),
+        canvas.height * (0.1 + Math.random() * 0.5)
+      );
+    }
+
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += 0.04; // gravity
+      p.alpha -= p.decay;
+
+      if (p.alpha <= 0) { particles.splice(i, 1); continue; }
+
+      ctx.save();
+      ctx.globalAlpha = p.alpha;
+      ctx.fillStyle = p.color;
+      ctx.shadowColor = p.color;
+      ctx.shadowBlur = 6;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    requestAnimationFrame(animate);
+  }
+
+  // Burst inicial
+  createBurst(canvas.width * 0.3, canvas.height * 0.3);
+  createBurst(canvas.width * 0.7, canvas.height * 0.2);
+  animate();
 }
 
 async function loadRanking() {
