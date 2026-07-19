@@ -689,6 +689,36 @@ function setRankingMode(mode) {
   loadRanking();
 }
 
+async function downloadRankingImage() {
+  const btn = $('download-ranking-btn');
+  const area = $('ranking-capture-area');
+  if (!area) return;
+  const originalText = btn.textContent;
+  btn.textContent = '⏳ Gerando imagem...';
+  btn.disabled = true;
+  try {
+    const canvas = await html2canvas(area, {
+      backgroundColor: '#0d1f0f',
+      scale: 2,
+      useCORS: true
+    });
+    const link = document.createElement('a');
+    link.download = `ranking-jaibet-${new Date().toISOString().slice(0,10)}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  } catch (err) {
+    alert('Erro ao gerar imagem: ' + err.message);
+  } finally {
+    btn.textContent = originalText;
+    btn.disabled = false;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const btn = document.getElementById('download-ranking-btn');
+  if (btn) btn.addEventListener('click', downloadRankingImage);
+});
+
 
 /* =============================================
    MODAL PALPITES DE UM USUÁRIO (via ranking)
