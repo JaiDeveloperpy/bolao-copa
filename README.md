@@ -1,173 +1,152 @@
-# ⚽ Bolão Copa do Mundo 2026
+# ⚽ Bolão da Copa do Mundo 2026
 
-Sistema completo de bolão com PostgreSQL, Node.js e frontend estático.
+> *Desenvolvido e rodado **ao vivo durante a Copa do Mundo 2026** (junho–julho), com um
+> grupo de amigos apostando nos jogos reais. Refatorado em setembro/2026.*
+
+Um **bolão que organizei para a Copa do Mundo de 2026** para jogar com um grupo de
+amigos. Cada pessoa cria uma conta, dá seu palpite de placar para cada jogo e ganha
+pontos conforme o quão perto chegou do resultado real. Um ranking mostra quem está
+mandando bem e quem está pagando os micos.
+
+Comecei como um projeto pessoal pra resolver a bagunça de anotar palpites no grupo do
+WhatsApp, e acabou virando um sisteminha completo com backend, banco de dados e painel
+de administração.
 
 ---
 
-## 📦 Estrutura
+## ✨ O que dá pra fazer
+
+- **Cadastro e login** dos participantes (senha com hash, sessão via token).
+- **Palpites de placar** por jogo, que fecham automaticamente alguns minutos antes de
+  cada partida — depois disso ninguém mais mexe.
+- **Pontuação automática**: quando o resultado é registrado, o banco calcula os pontos
+  de todo mundo na hora.
+- **Ranking geral** com critérios de desempate (mais cravadas, menos erros, etc.).
+- **Painel de admin** pra cadastrar jogos, lançar resultados e fechar apostas.
+- **Brincadeiras extras**: sequência de erros, "palpites malucos" (os mais absurdos) e
+  destaques de cada jogador.
+- Mata-mata com empate no tempo normal usa um **palpite de quem classifica** para
+  desempatar a pontuação.
+
+---
+
+## 🏆 Como funciona a pontuação
+
+| Você acertou… | Pontos |
+|---------------|:------:|
+| O placar exato | **10** |
+| O vencedor **e** a diferença de gols (inclui empate certo) | **7** |
+| Só o vencedor / que ia dar empate | **5** |
+| Errou o resultado | **0** |
+
+Nos jogos de mata-mata que terminam empatados no tempo normal, entra também o palpite de
+**qual seleção classifica** (nos pênaltis/prorrogação), que soma ou tira pontos conforme
+a tabela acima. Toda essa lógica vive numa função + trigger do PostgreSQL — assim a conta
+é sempre consistente, não importa por onde o resultado seja lançado.
+
+---
+
+## 🧱 Stack
+
+- **Backend:** Node.js + Express
+- **Banco:** PostgreSQL (com funções e triggers pra pontuação)
+- **Auth:** JWT + bcrypt
+- **Automação:** node-cron (fecha apostas sozinho e, opcionalmente, busca placares numa API)
+- **Frontend:** HTML/CSS/JavaScript puro (sem framework), servido como site estático
+
+Em produção o frontend roda na **Vercel** e o backend + banco na **Railway**.
+
+---
+
+## 📁 Estrutura
 
 ```
 bolao-copa/
 ├── backend/
+│   ├── config.js            ← lê e valida as variáveis de ambiente (segredos)
+│   ├── server.js            ← Express: middlewares, rotas e arquivos estáticos
+│   ├── cron.js              ← fecha apostas e (opcional) busca placares
 │   ├── db/
-│   │   ├── schema.sql      ← Cria todas as tabelas, triggers, views
-│   │   ├── seed.sql        ← Seleções e jogos iniciais
-│   │   └── index.js        ← Pool de conexão PostgreSQL
-│   ├── middleware/
-│   │   └── auth.js         ← JWT + verificação de admin
-│   ├── routes/
-│   │   ├── auth.js         ← POST /register, /login, GET /me
-│   │   ├── matches.js      ← CRUD de jogos + registrar resultado
-│   │   ├── bets.js         ← Palpites
-│   │   ├── ranking.js      ← Ranking geral
-│   │   └── teams.js        ← Times e grupos
-│   ├── server.js           ← Express + servir frontend
-│   ├── package.json
-│   └── .env.example
+│   │   ├── index.js         ← pool de conexão do PostgreSQL
+│   │   ├── schema.sql       ← fonte única: tabelas, funções, triggers, views
+│   │   ├── seed.sql         ← seleções e grupos iniciais
+│   │   ├── data/            ← inserts dos jogos (grupos, oitavas…)
+│   │   └── migrations/      ← patches históricos (já dobrados no schema)
+│   ├── middleware/auth.js   ← valida o token JWT e checa admin
+│   └── routes/              ← auth, matches, bets, ranking, teams
 └── frontend/
-    └── public/
-        ├── index.html
-        ├── css/style.css
-        └── js/app.js
+    └── public/              ← index.html, palpites, ranking, css, js
 ```
 
 ---
 
-## 🚀 Como rodar
+## 🚀 Rodando localmente
 
-### 1. Banco de dados
+**1. Banco de dados**
 
 ```bash
-# Criar o banco (se ainda não existir)
 createdb bolao_copa2026
-
-# Aplicar schema
 psql bolao_copa2026 -f backend/db/schema.sql
-
-# Seed com seleções e jogos exemplo (opcional)
-psql bolao_copa2026 -f backend/db/seed.sql
+psql bolao_copa2026 -f backend/db/seed.sql        # seleções e grupos (opcional)
 ```
 
-### 2. Backend
+**2. Backend**
 
 ```bash
 cd backend
-cp .env.example .env
-# Edite .env com sua DATABASE_URL e JWT_SECRET
-
+cp .env.example .env       # preencha DATABASE_URL e JWT_SECRET
 npm install
-npm run dev       # Desenvolvimento (nodemon)
-# ou
-npm start         # Produção
+npm run dev                # nodemon; ou `npm start` em produção
 ```
 
-### 3. Acessar
+O servidor sobe em `http://localhost:3001` e já serve o frontend.
 
-Abra `http://localhost:3001` no navegador.
-
----
-
-## 🏆 Sistema de Pontuação
-
-| Acerto             | Pontos |
-|--------------------|--------|
-| Placar exato       | **10** |
-| Vencedor + saldo   | **7**  |
-| Só o vencedor      | **5**  |
-| Errou tudo         | **0**  |
-
-A pontuação é **calculada automaticamente** via trigger PostgreSQL quando o admin registra o resultado.
+> As variáveis obrigatórias (`DATABASE_URL`, `JWT_SECRET`) são validadas na
+> inicialização — se faltar alguma, o servidor não sobe e avisa qual é.
 
 ---
 
-## ⚙️ Como usar o painel admin
+## ⚙️ Virar admin
 
-1. Crie um usuário normal pelo site
-2. Promova para admin direto no banco:
+1. Crie um usuário normal pelo site.
+2. No banco, promova para admin:
    ```sql
    UPDATE users SET is_admin = TRUE WHERE email = 'seu@email.com';
    ```
-3. Faça login — o botão "⚙️ Admin" aparece no menu
-4. **Adicione os jogos** pelo painel (times, data, estádio, cidade)
-5. **Registre os resultados** após cada jogo — os pontos são calculados na hora
+3. Faça login — o botão de admin aparece. A partir daí você cadastra os jogos e
+   registra os resultados; os pontos são calculados na hora.
+
+---
+
+## 🌐 Principais rotas da API
+
+```
+POST /api/auth/register            criar conta
+POST /api/auth/login               entrar
+GET  /api/auth/me                  usuário logado
+
+GET   /api/matches                 lista jogos (com seu palpite)
+POST  /api/matches                 [admin] criar jogo
+PATCH /api/matches/:id/result      [admin] lançar placar → pontua todos
+PATCH /api/matches/:id/close-bets  [admin] fechar apostas
+
+POST /api/bets                     palpitar (cria ou atualiza)
+GET  /api/bets/my                  meus palpites
+GET  /api/bets/all-by-match        palpites de todos (após o fechamento)
+
+GET  /api/ranking                  ranking geral
+GET  /api/teams                    seleções e grupos
+```
 
 ---
 
 ## 🔒 Segurança das apostas
 
-- Apostas fecham automaticamente **60 minutos antes** do jogo
-- Pode fechar manualmente pelo painel admin
-- Palpites de outros participantes ficam **ocultos** até o fechamento
+- As apostas fecham automaticamente **alguns minutos antes** de cada jogo
+  (configurável em `BET_CLOSE_MINUTES`). O corte usa o horário do **banco**, não o do
+  servidor, pra não dar problema de fuso.
+- O palpite dos outros participantes fica **oculto** até o fechamento.
 
 ---
 
-## 🌐 API — Endpoints principais
-
-### Auth
-```
-POST /api/auth/register   { name, email, password }
-POST /api/auth/login      { email, password }
-GET  /api/auth/me
-```
-
-### Jogos
-```
-GET    /api/matches               Lista todos com seu palpite
-POST   /api/matches               [ADMIN] Criar jogo
-PATCH  /api/matches/:id/result    [ADMIN] Registrar placar
-PATCH  /api/matches/:id/close-bets [ADMIN] Fechar apostas
-PUT    /api/matches/:id           [ADMIN] Editar jogo
-```
-
-### Palpites
-```
-POST /api/bets                Apostar (ou atualizar)
-GET  /api/bets/my             Meus palpites
-GET  /api/bets/match/:id      Palpites de todos (após fechamento)
-```
-
-### Ranking
-```
-GET /api/ranking              Ranking geral
-GET /api/ranking/me           Minha posição
-```
-
-### Times
-```
-GET  /api/teams               Lista times
-POST /api/teams               [ADMIN] Criar time
-PUT  /api/teams/:id           [ADMIN] Editar time
-GET  /api/teams/groups/all    Lista grupos
-```
-
----
-
-## 📅 Copa 2026 — Info
-
-- **Sede:** EUA, Canadá e México (48 seleções, 104 jogos)
-- **Início:** Junho de 2026
-- **Fase de grupos:** 12 grupos com 4 times cada
-- **API oficial:** Não existe gratuita. Insira jogos e resultados manualmente pelo painel admin.
-
----
-
-## 🛠️ Dependências
-
-```json
-{
-  "express": "^4.19",
-  "pg": "^8.11",
-  "bcryptjs": "^2.4",
-  "jsonwebtoken": "^9.0",
-  "cors": "^2.8",
-  "dotenv": "^16.4"
-}
-```
-
----
-
-## 📌 Dicas
-
-- Para resetar pontuações: `UPDATE bets SET points_earned = 0, is_scored = FALSE;`
-- Para ver ranking no banco: `SELECT * FROM ranking;`
-- Para ver próximos jogos: `SELECT * FROM upcoming_matches;`
+*Projeto pessoal, feito por diversão pra galera. Não é afiliado à FIFA nem à Copa do Mundo.*

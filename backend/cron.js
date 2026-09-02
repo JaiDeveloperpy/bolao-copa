@@ -1,15 +1,15 @@
 // backend/cron.js
 const cron = require('node-cron');
 const db   = require('./db');
+const { RAPIDAPI_KEY, BET_CLOSE_MINUTES } = require('./config');
 
-const RAPIDAPI_KEY  = process.env.RAPIDAPI_KEY || '13d0567aa6c889664c6be8ff4ada0da6';
 const LEAGUE_ID     = 1;      // Copa do Mundo FIFA
 const SEASON        = 2026;
 
 // ─── 1. Fechar apostas X min antes (mesma regra da rota POST /) ───
 async function fecharApostasAutomatico() {
   try {
-    const closeMinutes = parseInt(process.env.BET_CLOSE_MINUTES || '5');
+    const closeMinutes = BET_CLOSE_MINUTES;
     const result = await db.query(`
       UPDATE matches
       SET betting_closed = TRUE
@@ -27,6 +27,7 @@ async function fecharApostasAutomatico() {
 
 // ─── 2. Buscar e atualizar placares via API-Football ──────────────
 async function buscarEAtualizarPlacares() {
+  if (!RAPIDAPI_KEY) return; // sem chave configurada → não busca placares
   try {
     // Busca jogos do banco que já começaram e não foram finalizados
     const jogos = await db.query(`
@@ -120,10 +121,13 @@ function iniciarCron() {
   // Fechar apostas: a cada 5 minutos
   cron.schedule('*/5 * * * *', fecharApostasAutomatico);
 
-  // Buscar placares: a cada 5 minutos (100 req/dia gratuito — safe)
-  cron.schedule('*/5 * * * *', buscarEAtualizarPlacares);
-
-  console.log('⏰ Cron iniciado: fechamento automático + atualização de placares (API-Football)');
+  // Buscar placares só se houver chave da API configurada
+  if (RAPIDAPI_KEY) {
+    cron.schedule('*/5 * * * *', buscarEAtualizarPlacares);
+    console.log('⏰ Cron iniciado: fechamento automático + atualização de placares (API-Football)');
+  } else {
+    console.log('⏰ Cron iniciado: fechamento automático (sem RAPIDAPI_KEY → placares registrados só manualmente)');
+  }
 }
 
 module.exports = { iniciarCron };

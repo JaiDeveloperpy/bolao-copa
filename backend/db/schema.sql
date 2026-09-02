@@ -63,8 +63,9 @@ CREATE TABLE matches (
     match_date TIMESTAMPTZ NOT NULL,
     stadium VARCHAR(150),
     city VARCHAR(100),
-    home_score INTEGER,                          -- NULL até ser finalizado
+    home_score INTEGER,                          -- NULL até ser finalizado (placar no tempo normal)
     away_score INTEGER,
+    actual_classifier_id INTEGER REFERENCES teams(id), -- quem classificou (em empates no mata-mata)
     is_finished BOOLEAN DEFAULT FALSE,
     betting_closed BOOLEAN DEFAULT FALSE,        -- fecha apostas X min antes
     created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -81,6 +82,7 @@ CREATE TABLE bets (
     match_id INTEGER NOT NULL REFERENCES matches(id) ON DELETE CASCADE,
     home_score_bet INTEGER NOT NULL CHECK (home_score_bet >= 0),
     away_score_bet INTEGER NOT NULL CHECK (away_score_bet >= 0),
+    classifier_team_id INTEGER REFERENCES teams(id), -- palpite de quem classifica (mata-mata com empate)
     points_earned INTEGER DEFAULT 0,
     is_scored BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -91,41 +93,77 @@ CREATE TABLE bets (
 -- =============================================
 -- SISTEMA DE PONTUAÇÃO
 -- =============================================
--- Regras:
---   Placar exato:                          10 pts
---   Vencedor + diferença de gols exata:     7 pts  
---   Apenas vencedor / empate correto:       5 pts
---   Errou tudo:                             0 pts
+-- Regras gerais:
+--   Placar exato (sem empate ou empate + classificador certo): 10 pts
+--   Vencedor + diferença de gols (ou empate + classificador certo mas placar errado): 7 pts
+--   Só acertou vencedor / empate (mas errou classificador ou não informou): 5 pts
+--   Errou tudo: 0 pts
 --
--- Função para calcular pontos
+-- Regras especiais para mata-mata com empate no tempo normal:
+--   Acertou placar exato + classificador correto → 10 pts
+--   Acertou placar exato + classificador errado  →  7 pts
+--   Acertou empate (placar errado) + classificador certo → 7 pts
+--   Acertou empate (placar errado) + classificador errado ou ausente → 5 pts
+--   Errou o vencedor (apostou ganhador mas foi empate ou vice-versa) → 0 pts
+--
 CREATE OR REPLACE FUNCTION calculate_bet_points(
-    p_home_real INTEGER,
-    p_away_real INTEGER,
-    p_home_bet  INTEGER,
-    p_away_bet  INTEGER
+    p_home_real       INTEGER,
+    p_away_real       INTEGER,
+    p_home_bet        INTEGER,
+    p_away_bet        INTEGER,
+    p_is_knockout     BOOLEAN DEFAULT FALSE,
+    p_actual_clf      INTEGER DEFAULT NULL,  -- quem realmente classificou
+    p_bet_clf         INTEGER DEFAULT NULL   -- quem o usuário apostou que classificaria
 ) RETURNS INTEGER AS $$
 DECLARE
     real_winner INTEGER; -- -1 away, 0 draw, 1 home
     bet_winner  INTEGER;
+    is_exact    BOOLEAN;
     real_diff   INTEGER;
     bet_diff    INTEGER;
+    clf_correct BOOLEAN;
 BEGIN
-    -- Resultado real
+    -- Vencedor real (no tempo normal)
     real_winner := CASE
         WHEN p_home_real > p_away_real THEN 1
         WHEN p_home_real < p_away_real THEN -1
         ELSE 0
     END;
 
-    -- Palpite
+    -- Vencedor apostado
     bet_winner := CASE
         WHEN p_home_bet > p_away_bet THEN 1
         WHEN p_home_bet < p_away_bet THEN -1
         ELSE 0
     END;
 
+    is_exact := (p_home_real = p_home_bet AND p_away_real = p_away_bet);
+
+    -- ── CASO: jogo terminou empatado no tempo normal (mata-mata → prorrogação/pênaltis) ──
+    IF p_is_knockout AND real_winner = 0 THEN
+        -- Usuário apostou empate?
+        IF bet_winner != 0 THEN
+            RETURN 0;  -- apostou em vencedor, mas foi empate
+        END IF;
+
+        -- Acertou empate — checa classificador
+        clf_correct := (p_actual_clf IS NOT NULL AND p_bet_clf IS NOT NULL AND p_actual_clf = p_bet_clf);
+
+        IF is_exact AND clf_correct THEN
+            RETURN 10;  -- placar exato + classificador certo
+        ELSIF is_exact THEN
+            RETURN 7;   -- placar exato mas classificador errado
+        ELSIF clf_correct THEN
+            RETURN 7;   -- empate certo + classificador certo (placar errado)
+        ELSE
+            RETURN 5;   -- só acertou empate
+        END IF;
+    END IF;
+
+    -- ── CASO: jogo com vencedor no tempo normal (qualquer fase) ──
+
     -- Placar exato
-    IF p_home_real = p_home_bet AND p_away_real = p_away_bet THEN
+    IF is_exact THEN
         RETURN 10;
     END IF;
 
@@ -134,7 +172,7 @@ BEGIN
         RETURN 0;
     END IF;
 
-    -- Vencedor igual → checa diferença
+    -- Vencedor igual → checa diferença de gols
     real_diff := ABS(p_home_real - p_away_real);
     bet_diff  := ABS(p_home_bet  - p_away_bet);
 
@@ -182,6 +220,7 @@ SELECT
     m.is_finished,
     m.home_score,
     m.away_score,
+    m.actual_classifier_id,
     ht.id   AS home_team_id,
     ht.name AS home_team_name,
     ht.code AS home_team_code,
@@ -202,16 +241,34 @@ ORDER BY m.match_date ASC;
 -- =============================================
 CREATE OR REPLACE FUNCTION score_bets_on_result()
 RETURNS TRIGGER AS $$
+DECLARE
+    v_is_knockout BOOLEAN;
 BEGIN
-    -- Só age quando o jogo é marcado como finalizado
-    IF NEW.is_finished = TRUE AND OLD.is_finished = FALSE
-       AND NEW.home_score IS NOT NULL AND NEW.away_score IS NOT NULL THEN
+    -- Re-pontua sempre que o resultado relevante muda: ao finalizar OU quando
+    -- placar/classificador são corrigidos depois (ex.: o cron finaliza sem
+    -- classificador e o admin ajusta em seguida).
+    IF NEW.is_finished = TRUE
+       AND NEW.home_score IS NOT NULL
+       AND NEW.away_score IS NOT NULL
+       AND (
+            OLD.is_finished = FALSE
+            OR NEW.home_score          IS DISTINCT FROM OLD.home_score
+            OR NEW.away_score          IS DISTINCT FROM OLD.away_score
+            OR NEW.actual_classifier_id IS DISTINCT FROM OLD.actual_classifier_id
+       ) THEN
+
+        v_is_knockout := (NEW.phase != 'group');
 
         UPDATE bets
         SET
             points_earned = calculate_bet_points(
-                NEW.home_score, NEW.away_score,
-                home_score_bet, away_score_bet
+                NEW.home_score,
+                NEW.away_score,
+                home_score_bet,
+                away_score_bet,
+                v_is_knockout,
+                NEW.actual_classifier_id,
+                classifier_team_id
             ),
             is_scored = TRUE,
             updated_at = NOW()
@@ -254,3 +311,10 @@ CREATE INDEX idx_bets_match_id   ON bets(match_id);
 CREATE INDEX idx_matches_date    ON matches(match_date);
 CREATE INDEX idx_matches_phase   ON matches(phase);
 CREATE INDEX idx_teams_group     ON teams(group_id);
+
+-- =============================================
+-- MIGRATION (para banco já existente)
+-- Rode apenas se a coluna ainda não existir.
+-- =============================================
+-- ALTER TABLE matches ADD COLUMN IF NOT EXISTS actual_classifier_id INTEGER REFERENCES teams(id);
+-- ALTER TABLE bets    ADD COLUMN IF NOT EXISTS classifier_team_id    INTEGER REFERENCES teams(id);

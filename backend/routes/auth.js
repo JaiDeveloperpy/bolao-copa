@@ -4,9 +4,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('../db');
 const { auth } = require('../middleware/auth');
-
-// Força uma chave padrão se o Railway moscá com o .env
-const JWT_SECRET_KEY = process.env.JWT_SECRET || 'Zk5q8cfTztWcjWVFPELaZJ0go5yROh1MxmCEU6mEtb4=';
+const { JWT_SECRET, JWT_EXPIRES_IN } = require('../config');
 
 // POST /api/auth/register
 router.post('/register', async (req, res) => {
@@ -36,8 +34,8 @@ router.post('/register', async (req, res) => {
     const user = result.rows[0];
     const token = jwt.sign(
       { id: user.id, email: user.email, is_admin: user.is_admin },
-      JWT_SECRET_KEY, // Usando a constante corrigida aqui
-      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+      JWT_SECRET,
+      { expiresIn: JWT_EXPIRES_IN }
     );
 
     res.status(201).json({ token, user });
@@ -73,8 +71,8 @@ router.post('/login', async (req, res) => {
 
     const token = jwt.sign(
       { id: user.id, email: user.email, is_admin: user.is_admin },
-      JWT_SECRET_KEY, // Usando a constante corrigida aqui
-      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+      JWT_SECRET,
+      { expiresIn: JWT_EXPIRES_IN }
     );
 
     delete user.password_hash;

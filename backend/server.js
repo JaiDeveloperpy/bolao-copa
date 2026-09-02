@@ -1,18 +1,15 @@
-require('dotenv').config();
 const express = require('express');
 const cors    = require('cors');
 const path    = require('path');
+const { PORT, CORS_ORIGINS } = require('./config');
 
 const app  = express();
-const PORT = process.env.PORT || 3001;
 
 // =============================================
 // Middlewares globais
 // =============================================
 app.use(cors({
-  origin: [
-    "https://bolao-copa-seven-omega.vercel.app"
-  ],
+  origin: CORS_ORIGINS,   // configurável via env CORS_ORIGINS (lista separada por vírgula)
   credentials: true
 }));
 app.use(express.json());
